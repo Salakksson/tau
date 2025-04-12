@@ -15,6 +15,12 @@
 
 #define TODO(msg) ((void)fprintf(stderr, "todo: %s", msg), (void)exit(0))
 
+#ifndef __GNUC__
+#ifndef __clang__
+#error "unsupported compiler"
+#endif
+#endif
+
 enum_map keywords[] =
 {
 	#define X(name, str) {K_##name, str},

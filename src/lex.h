@@ -9,12 +9,6 @@
 
 #include "x_macros.h"
 
-#ifndef __GNUC__
-#ifndef __clang__
-#error "unsupported compiler"
-#endif
-#endif
-
 typedef enum
 {
 	K_NONE = 0,
