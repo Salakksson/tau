@@ -1,0 +1,9 @@
+#use "a"
+
+int main()
+{
+	int a = 34;
+	int b = 35;
+	string format = f"{a + b}";
+	if (true) print(format);
+}

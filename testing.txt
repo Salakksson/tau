@@ -1,0 +1,7 @@
+unterminated string: amber
+	ignored
+
+need to implement:
+	floating point literals
+	warning/error field in token to warn about overflows
+	might want to not allow multiline strings
