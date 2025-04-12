@@ -26,8 +26,8 @@ void msg(msg_type type, const char* message, ...);
 
 #undef assert
 #define assert(cond, ...) ( \
-	(cond) ? (void)0 		\
-		 : msg(MSG_FATAL, 	\
+	(cond) ? (void)0    \
+		 : msg(MSG_FATAL, \
 "Assertion '" #cond "' failed - " FILE_LINE() ": " __VA_ARGS__)\
 )
 
