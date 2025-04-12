@@ -6,12 +6,12 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#define COLOUR_RED		"\x1b[31m"
-#define COLOUR_YELLOW		"\x1b[33m"
-#define COLOUR_BLUE		"\x1b[34m"
-#define COLOUR_MAGENTA		"\x1b[35m"
+#define COLOUR_RED      "\x1b[31m"
+#define COLOUR_YELLOW   "\x1b[33m"
+#define COLOUR_BLUE     "\x1b[34m"
+#define COLOUR_MAGENTA  "\x1b[35m"
 
-#define COLOUR_RESET		"\x1b[0m"
+#define COLOUR_RESET    "\x1b[0m"
 
 #ifdef DEBUG
 static msg_type log_level = MSG_DEBUG;

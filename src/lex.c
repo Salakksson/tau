@@ -8,8 +8,6 @@
 #include <string.h>
 #include <errno.h>
 
-
-
 #define TOK_UNIMPLEMENTED (token){T_ERR, {.err = "UNIMPLEMETNED TOKEN"}}
 #define TOK_EOF (token){lex->loc, T_EOF, {0}};
 
