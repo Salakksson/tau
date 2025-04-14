@@ -1,5 +1,5 @@
-#ifndef AST_H_
-#define AST_H_
+#ifndef PARSE_H_
+#define PARSE_H_
 
 #include "da.h"
 
@@ -39,6 +39,7 @@ struct syntax_node
 
 typedef struct 
 {
+	syntax_node_list nodes;
 } ast;
 
 #endif
