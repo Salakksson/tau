@@ -62,7 +62,7 @@ typedef struct
 		uint64_t numeric;
 		char* str;
 		const char* err;
-	} value;
+	};
 
 } token;
 

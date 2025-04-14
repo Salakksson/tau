@@ -1,5 +1,7 @@
-#include "lex.h"
 #include "msg.h"
+#include "lex.h"
+#include "ast.h"
+#include <stdio.h>
 
 int main(int argc, char** argv)
 {	
@@ -16,27 +18,27 @@ int main(int argc, char** argv)
 		switch(tok.type)
 		{
 			case T_ERR:
-				msg(MSG_INFO, "err: %i:%i %s", tok.loc.line, tok.loc.col, tok.value.err);
+				msg(MSG_INFO, "err: %s", tok.err);
 				break;
 			case T_ID:
-				msg(MSG_INFO, "id: %i:%i %s", tok.loc.line, tok.loc.col, tok.value.str);
+				msg(MSG_INFO, "id: %s", tok.str);
 				break;
 			case T_KEYWORD:
-				msg(MSG_INFO, "keyword: %i:%i %s:%i", tok.loc.line, tok.loc.col, view_keyword(tok.value.e), tok.value.e);
+				msg(MSG_INFO, "keyword: %s", view_keyword(tok.e));
 				break;
 			case T_PUNCT:
-				msg(MSG_INFO, "punct: %i:%i %s:%i", tok.loc.line, tok.loc.col, view_punct(tok.value.e), tok.value.e);
+				msg(MSG_INFO, "punct: %s", view_punct(tok.e));
 				break;
 			case T_NLITERAL:
-				msg(MSG_INFO, "nliteral: %i:%i %i", tok.loc.line, tok.loc.col, tok.value.numeric);
+				msg(MSG_INFO, "nliteral: %i", tok.numeric);
 				break;
 			case T_SLITERAL:
-				msg(MSG_INFO, "sliteral: %i:%i \"%s\"", tok.loc.line, tok.loc.col, tok.value.str);
+				msg(MSG_INFO, "sliteral: \"%s\"", tok.str);
 				break;
 			case T_CLITERAL:
-				msg(MSG_INFO, "cliteral: %i:%i '%c'", tok.loc.line, tok.loc.col, tok.value.numeric);
+				msg(MSG_INFO, "cliteral: '%c'", tok.numeric);
 				break;
-			default:
+				default:
 				fatal("invalid token");
 		}
 		token_destroy(&tok);

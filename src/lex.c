@@ -205,7 +205,7 @@ token lexer_get_nliteral(lexer* lex)
 		lexer_increment_ptr(lex);
 		CHECK_EOF;
 	}
-	tok.value.numeric = sum;
+	tok.numeric = sum;
 	return tok;
 }
 
@@ -294,7 +294,7 @@ token lexer_get_cliteral(lexer* lex)
 		return (token){lex->loc, T_ERR, {.err = fstring("no ending quote")}};
 	}
 	lexer_increment_ptr(lex); // skip quote
-	tok.value.numeric = c;
+	tok.numeric = c;
 	return tok;
 }
 
@@ -410,9 +410,9 @@ token lexer_convert_id(token tok)
 		{
 			return tok;
 		}
-		if (!strcmp(tok.value.str, k.str))
+		if (!strcmp(tok.str, k.str))
 		{
-			free(tok.value.str);
+			free(tok.str);
 			return (token){tok.loc, T_KEYWORD, {.e = k.e}};
 		}
 	}
@@ -450,7 +450,7 @@ void token_destroy(token* tok)
 	{
 		case T_SLITERAL:
 		case T_ID:
-			free(tok->value.str);
+			free(tok->str);
 		default:
 			return;
 	}
