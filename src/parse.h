@@ -2,6 +2,7 @@
 #define PARSE_H_
 
 #include "da.h"
+#include "lex.h"
 
 typedef enum
 {
@@ -25,10 +26,17 @@ typedef struct
 
 typedef enum
 {
+	SN_NONE = 0,
+	SN_DECL,
+	SN_DEFINE, 
 	SN_EXPR,
 	SN_FUNCTION,
-} sn_type;
 
+	// incomplete syntax nodes:
+	SNC_TYPE,
+	SNC_NUMBER,
+	SNC_
+} sn_type;
 struct syntax_node
 {
 	sn_type type;
@@ -37,9 +45,15 @@ struct syntax_node
 	};
 };
 
-typedef struct 
+typedef struct
 {
-	syntax_node_list nodes;
-} ast;
+	syntax_node_list ast;
+	syntax_node constructing;
+} parser;
+
+parser parser_create();
+
+void parser_collect_node(parser* p, lexer* lexn);
+
 
 #endif

@@ -68,7 +68,7 @@ typedef struct
 
 typedef struct
 {
-	char* buffer;
+	const char* buffer;
 	size_t sz;
 	size_t ptr;
 	
@@ -82,6 +82,8 @@ typedef struct
 lexer lexer_create(char* source);
 
 token lexer_get_token(lexer* lex);
+
+token lexer_peek_token(lexer* lex);
 
 void lexer_destroy(lexer* lex);
 

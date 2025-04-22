@@ -85,12 +85,13 @@ lexer lexer_create(char* filepath)
 	l.loc.line = 1;
 	l.loc.col = 1;
 
-	l.buffer = malloc(l.sz + 1);
-	size_t sum = fread(l.buffer, 1, l.sz, fp);
+	char* buffer = malloc(l.sz + 1);
+	size_t sum = fread(buffer, 1, l.sz, fp);
 
 	if (sum != l.sz) fatal("failed to read entire file '%s': '%s'", filepath, strerror(errno));
 
-	l.buffer[l.sz] = 0;
+	buffer[l.sz] = 0;
+	l.buffer = buffer;
 	
 	fclose(fp);
 	return l;
@@ -439,9 +440,15 @@ token lexer_get_token(lexer* lex)
 	__builtin_unreachable();
 }
 
+token lexer_peek_token(lexer* lex)
+{
+	lexer copy = *lex;
+	return lexer_get_token(&copy);
+}
+
 void lexer_destroy(lexer* lex)
 {
-	free(lex->buffer);
+	free((void*)lex->buffer);
 }
 
 void token_destroy(token* tok)

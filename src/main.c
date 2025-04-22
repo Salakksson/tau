@@ -1,7 +1,6 @@
 #include "msg.h"
 #include "lex.h"
-#include "ast.h"
-#include <stdio.h>
+#include "parse.h"
 
 int main(int argc, char** argv)
 {	
@@ -15,7 +14,7 @@ int main(int argc, char** argv)
 	token tok = {0};
 	while ((tok = lexer_get_token(&lex)).type != T_EOF)
 	{
-		switch(tok.type)
+	 	switch(tok.type)
 		{
 			case T_ERR:
 				msg(MSG_INFO, "err: %s", tok.err);
@@ -38,7 +37,7 @@ int main(int argc, char** argv)
 			case T_CLITERAL:
 				msg(MSG_INFO, "cliteral: '%c'", tok.numeric);
 				break;
-				default:
+			default:
 				fatal("invalid token");
 		}
 		token_destroy(&tok);
