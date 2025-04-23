@@ -47,6 +47,7 @@
 	X(DO, "do") \
 	X(WHILE, "while") \
 	X(GOTO, "goto") \
+        X(SWITCH, "switch") \
 	X(CASE, "case") \
 	X(DEFAULT, "default") \
 	X(BREAK, "break") \
@@ -58,10 +59,8 @@
 	X(RESTRICT, "restrict") \
 	X(VOLATILE, "volatile") \
 	X(EXTERN, "extern") \
-	X(UNSIGNED, "unsigned") \
 	X(STATIC, "static") \
 	X(CONST, "const") \
-	X(SWITCH, "switch") \
 	X(TYPEDEF, "typedef") \
 	X(ENUM, "enum") \
 	X(UNION, "union") \

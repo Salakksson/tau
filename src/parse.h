@@ -53,7 +53,7 @@ typedef struct
 
 parser parser_create();
 
-void parser_collect_node(parser* p, lexer* lexn);
+bool parser_collect_node(parser* p, lexer* lexn);
 
 
 #endif
