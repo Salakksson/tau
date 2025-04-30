@@ -6,13 +6,14 @@ print_help()
 {
 	echo "Usage: $0 [options]"
 	echo "Options:"
-	echo "  -r      Remove packages"
-	echo "  -a      Add packages"
-	echo "  -d      Only show diff"
-	echo "  -c      Show common packages"
-	echo "  -f      No confirm (Scary!)"
-	echo "  -q      Quiet mode"
-	echo "  -h      Display this help message"
+	echo "  -r       Remove packages"
+	echo "  -a       Add packages"
+	echo "  -d       Only show diff"
+	echo "  -c       Show common packages"
+	echo "  -f       No confirm (Scary!)"
+	echo "  -q       Quiet mode"
+	echo "  -u       Use AUR"
+	echo "  -h       Display this help message"
 }
 
 if [ $# -eq 0 ]; then
@@ -26,8 +27,9 @@ f_diff=false
 f_common=false
 f_force=false
 f_verbose=true
+f_aur=false
 
-while getopts "radcfqh" opt; do
+while getopts "radcfquh" opt; do
 	case $opt in
 		r) f_remove=true ;;
 		a) f_add=true ;;
@@ -35,6 +37,7 @@ while getopts "radcfqh" opt; do
 		c) f_common=true ;;
 		f) f_force=true ;;
 		q) f_verbose=false ;;
+		u) f_aur=true ;;
 		h)
 			print_help
 			exit 0
@@ -46,7 +49,14 @@ while getopts "radcfqh" opt; do
 	esac
 done
 
-SOURCE="packages.list"
+AUR_CMD="yay"
+
+if $f_aur;
+then
+	echo using $AUR_CMD for AUR
+fi
+
+SOURCE="packages.conf"
 
 SOURCE_LIST=""
 SYSTEM_LIST=""
@@ -66,8 +76,7 @@ check_directive() # line
 }
 
 parse_file()
-{
-	file="$1"
+{	file="$1"
 	while IFS= read -r line || test -n "$line";
 	do
 		line=$(sed 's/#.*//' <<< "$line")  # remove comments
@@ -108,6 +117,29 @@ PKGS_ADD=$(echo $PKGS_ADD)
 PKGS_REM=$(echo $PKGS_REM)
 PKGS_COM=$(echo $PKGS_COM)
 
+is_package_installed() # package
+{
+	package=$1
+	if pacman -Qi $package &> /dev/null;
+	then
+		return 0
+	fi
+	return 1
+}
+
+PKGS_ADD_OLD=$PKGS_ADD
+PKGS_ADD=""
+PKGS_IGNORED=""
+for pkg in $PKGS_ADD_OLD;
+do
+	if is_package_installed $pkg;
+	then
+		PKGS_IGNORED="$PKGS_IGNORED $pkg"
+	else
+		PKGS_ADD="$PKGS_ADD $pkg"
+	fi
+done
+
 RESET='\033[0m'
 
 BOLD='\033[1m'
@@ -125,7 +157,7 @@ verbose()
 {
 	if $f_verbose;
 	then
-		echo -e $1
+		echo -e $@
 	fi
 }
 
@@ -153,7 +185,12 @@ remove_packages()
 
 add_packages()
 {
-	confirm sudo pacman -S $PKGS_ADD
+	if $f_aur;
+	then
+		confirm yay -S $PKGS_ADD
+	else
+		confirm sudo pacman -S $PKGS_ADD		
+	fi
 }
 
 print_diff()
@@ -176,6 +213,9 @@ print_diff()
 }
 
 print_diff
+
+#verbose ignoring packages:
+#verbose "$FG_YELLOW $PKGS_IGNORED $RESET"
 
 if $f_diff;
 then
