@@ -14,11 +14,12 @@ Once the config exists you can run the script:
 ```
 ./diff.sh [options]
 Options:
-  -r      Remove packages
-  -a      Add packages
-  -d      Only show diff
-  -c      Show common packages
-  -f      No confirm (Scary!)
-  -q      Quiet mode
-  -h      Display this help message
+  -r       Remove packages
+  -a       Add packages
+  -d       Only show diff
+  -c       Show common packages
+  -f       No confirm (Scary!)
+  -q       Quiet mode
+  -u       Use AUR
+  -h       Display this help message
 ```
