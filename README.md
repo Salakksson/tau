@@ -1,7 +1,7 @@
-# pacman-declare - declarative wrapper for pacman
+# pamde - declarative wrapper for pacman
 
 ## Usage:
-To use the script you must first create a config file for it (currently hardcoded as packages.conf). \
+To use the script you must first create a config file for it \
 To create the config file you can simply `pacman -Qqe > packages.conf`. \
 The config syntax looks like this:
 ```ini
