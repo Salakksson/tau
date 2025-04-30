@@ -4,7 +4,7 @@
 To use the script you must first create a config file for it (currently hardcoded as packages.conf). \
 To create the config file you can simply `pacman -Qqe > packages.conf`. \
 The config syntax looks like this:
-```bash
+```ini
 # regualar line comments
 !include foo.list # inlines the file 'foo.list'
 package1          # declares package1
