@@ -24,5 +24,4 @@ Options:
   -h       Display this help message
 (file) defaults to /usr/local/share/pamde/main.conf
 ```
-for example, `pamde -rad` would show all changes\
-if `pamde -ra` was run
+for example, `pamde -rad` would show all changes if `pamde -ra` was run
