@@ -14,6 +14,7 @@ print_help()
 	echo "  -q       Quiet mode"
 	echo "  -u       Use AUR"
 	echo "  -h       Display this help message"
+	echo " --clean   Cleans up unused packages"
 	echo "(file) defaults to /usr/local/share/pamde/main.conf"
 }
 
@@ -42,6 +43,7 @@ f_common=false
 f_force=false
 f_verbose=true
 f_aur=false
+f_clean=false
 SOURCE="/usr/local/share/pamde/main.conf"
 AUR_CMD="yay"
 
@@ -50,6 +52,7 @@ while [ "$#" -gt 0 ]
 do
 	arg="$1"
 	case $arg in
+	--clean) f_clean=true;;
 	-*)
 		flags=$(sed 's/-//' <<< "$arg")
 		for c in $(fold -w1 <<< "$flags")
@@ -239,6 +242,18 @@ add_packages()
 	fi
 }
 
+clean_packages()
+{
+	PKGS_CLEAN=$(pacman -Qdtq || true)
+	if test ! -n "$PKGS_CLEAN";
+	then
+		echo -e "${BOLD}${FG_GREEN}No packages to clean${RESET}"
+		return 0
+	fi
+	# TODO: add option to ignore packages like in yay, probably in rest of the program aswell
+	confirm pacman -Rsn $PKGS_CLEAN
+}
+
 print_diff()
 {
 	if $f_remove && test -n "$PKGS_REM";
@@ -276,4 +291,9 @@ fi
 if $f_add && test -n "$PKGS_ADD";
 then
 	add_packages
+fi
+
+if $f_clean;
+then
+	clean_packages
 fi
