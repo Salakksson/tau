@@ -20,6 +20,7 @@ Options:
   -q       Quiet mode
   -d       Dry run
   -f       No confirm (Scary!)
+  -p       Profile
   -h       Display this help message
  --add     Add packages
  --remove  Remove packages
