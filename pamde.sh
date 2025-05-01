@@ -1,6 +1,8 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
+
+profile_init=$(date +%s%N)
 
 print_help()
 {
@@ -12,6 +14,7 @@ print_help()
 	echo "  -q       Quiet mode"
 	echo "  -d       Dry run"
 	echo "  -f       No confirm (Scary!)"
+	echo "  -p       Profile"
 	echo "  -h       Display this help message"
 	echo " --add     Add packages"
 	echo " --remove  Remove packages"
@@ -44,6 +47,7 @@ f_aur=false
 f_verbose=true
 f_dry=false
 f_force=false
+f_profile=false
 
 SOURCE="/usr/local/share/pamde/main.conf"
 AUR_CMD="yay"
@@ -57,8 +61,8 @@ do
 	--remove) f_remove=true;;
 	--clean) f_clean=true;;
 	-*)
-		flags=$(sed 's/-//' <<< "$arg")
-		for c in $(fold -w1 <<< "$flags")
+		flags=$(echo "$arg" | sed 's/-//')
+		for c in $(echo "$flags" | fold -w1)
 		do
 			case "$c" in
 			s)
@@ -70,6 +74,7 @@ do
 			q) f_verbose=false ;;
 			d) f_dry=true ;;
 			f) f_force=true ;;
+			p) f_profile=true ;;
 			h)
 				print_help
 				exit 0
@@ -109,6 +114,12 @@ then
 	verbose "Using default source '$SOURCE'"
 fi
 
+if $f_profile;
+then
+	profile_init_end=$(date +%s%N)
+	echo "-p: init took $(( (profile_init_end - profile_init)/1000000 )) ms"
+fi
+
 if ! test -e $SOURCE;
 then
 	echo -e "${BOLD}${FG_YELLOW}File '$SOURCE' does not exist"
@@ -129,57 +140,62 @@ then
 	verbose using $AUR_CMD for AUR
 fi
 
+# main package lists
 SOURCE_LIST=""
 SYSTEM_LIST=""
 
-check_directive() # line
-{
-	line="$1"
-	case "$line" in
-	!include*)
-		line=$(sed 's/!include *//g' <<< "$line")
-		line=$(sed 's/ *$//g' <<< "$line")
-		parse_file "$line"
-		return 0
-		;;
-	esac
-	return 1
-}
+if $f_profile;
+then
+	query=$(date +%s%N)
+fi
+
+# query system packages
+SYSTEM_LIST=$(pacman -Qqe)
+
+if $f_profile;
+then
+	query_end=$(date +%s%N)
+	echo "-p: query took $(( (query_end - query)/1000000 )) ms"
+	profile_config=$(date +%s%N)
+fi
 
 parse_file()
 {
 	file="$1"
-	old_dir=$(pwd)
-	cd $(dirname $file)
+	base_dir=$(dirname "$file")
 	while IFS= read -r line || test -n "$line";
 	do
-		line=$(sed 's/#.*//' <<< "$line")  # remove comments
-		line=$(sed 's/^ *//' <<< "$line")  # and leading whitespace
+		line=$(echo "$line" | sed -e 's/#.*//' -e 's/^\s*//')
 
-		if ! test -n "$line"; # skip empty
+		if ! test -n "$line";
 		then
 			continue
 		fi
 
-		if ! check_directive "$line";
-		then
+		case "$line" in
+		!include*)
+			include_file=$(echo "${line#*!include}" | sed -e 's/^ *//' -e 's/ *$//')
+			parse_file "$base_dir/$include_file"
+			;;
+		*)
 			SOURCE_LIST="$SOURCE_LIST $line"
-		fi
+			;;
+		esac
 
 	done < "$file"
-	cd $old_dir # not using cd - since !incldues can be nested
 }
 
-query_packages()
-{
-	SYSTEM_LIST=$(pacman -Qqe)
-}
-
-query_packages
 parse_file "$SOURCE"
-SOURCE_LIST=$(sed 's/^ *//' <<< "$SOURCE_LIST")
-SOURCE_LIST=$(sed 's/\s\+/\n/g' <<< "$SOURCE_LIST")
-SYSTEM_LIST=$(sed 's/\s\+/\n/g' <<< "$SYSTEM_LIST")
+
+if $f_profile;
+then
+	profile_config_end=$(date +%s%N)
+	echo "-p: config took $(( (profile_config_end - profile_config)/1000000 )) ms"
+	profile_filter=$(date +%s%N)
+fi
+
+SOURCE_LIST=$(echo "$SOURCE_LIST" | sed 's/^ *//' | sed 's/\s\+/\n/g')
+SYSTEM_LIST=$(echo "$SYSTEM_LIST" | sed 's/\s\+/\n/g')
 
 SOURCE_LIST=$(echo "$SOURCE_LIST" | sort)
 SYSTEM_LIST=$(echo "$SYSTEM_LIST" | sort) # dont rely on pacman to sort the list
@@ -214,6 +230,12 @@ do
 done
 
 PKGS_ADD=$(echo $PKGS_ADD)
+
+if $f_profile;
+then
+	profile_filter_end=$(date +%s%N)
+	echo "-p: filter took $(( (profile_filter_end - profile_filter)/1000000 )) ms"
+fi
 
 confirm() # command
 {
