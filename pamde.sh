@@ -6,15 +6,15 @@ print_help()
 {
 	echo "Usage: $0 [options] (file)"
 	echo "Options:"
-	echo "  -r       Remove packages"
-	echo "  -a       Add packages"
-	echo "  -d       Only show diff"
-	echo "  -c       Show common packages"
-	echo "  -f       No confirm (Scary!)"
-	echo "  -q       Quiet mode"
+	echo "  -s       Sync (add/remove)"
+	echo "  -c       Cleans up unused packages"
 	echo "  -u       Use AUR"
+	echo "  -q       Quiet mode"
+	echo "  -d       Dry run"
+	echo "  -f       No confirm (Scary!)"
 	echo "  -h       Display this help message"
-	echo " --clean   Cleans up unused packages"
+	echo " --add     Add packages"
+	echo " --remove  Remove packages"
 	echo "(file) defaults to /usr/local/share/pamde/main.conf"
 }
 
@@ -36,14 +36,15 @@ FG_CYAN='\033[36m'
 FG_WHITE='\033[97m'
 FG_GRAY='\033[90m'
 
-f_remove=false
+
 f_add=false
-f_diff=false
-f_common=false
-f_force=false
-f_verbose=true
-f_aur=false
+f_remove=false
 f_clean=false
+f_aur=false
+f_verbose=true
+f_dry=false
+f_force=false
+
 SOURCE="/usr/local/share/pamde/main.conf"
 AUR_CMD="yay"
 
@@ -52,19 +53,23 @@ while [ "$#" -gt 0 ]
 do
 	arg="$1"
 	case $arg in
+	--add) f_add=true;;
+	--remove) f_remove=true;;
 	--clean) f_clean=true;;
 	-*)
 		flags=$(sed 's/-//' <<< "$arg")
 		for c in $(fold -w1 <<< "$flags")
 		do
 			case "$c" in
-			r) f_remove=true ;;
-			a) f_add=true ;;
-			d) f_diff=true ;;
-			c) f_common=true ;;
-			f) f_force=true ;;
-			q) f_verbose=false ;;
+			s)
+				f_add=true
+				f_remove=true
+				;;
+			c) f_clean=true ;;
 			u) f_aur=true ;;
+			q) f_verbose=false ;;
+			d) f_dry=true ;;
+			f) f_force=true ;;
 			h)
 				print_help
 				exit 0
@@ -181,11 +186,9 @@ SYSTEM_LIST=$(echo "$SYSTEM_LIST" | sort) # dont rely on pacman to sort the list
 
 PKGS_ADD=$(comm -23 <(echo "$SOURCE_LIST") <(echo "$SYSTEM_LIST"))
 PKGS_REM=$(comm -13 <(echo "$SOURCE_LIST") <(echo "$SYSTEM_LIST"))
-PKGS_COM=$(comm -12 <(echo "$SOURCE_LIST") <(echo "$SYSTEM_LIST"))
 
 PKGS_ADD=$(echo $PKGS_ADD)
 PKGS_REM=$(echo $PKGS_REM)
-PKGS_COM=$(echo $PKGS_COM)
 
 is_package_installed() # package
 {
@@ -209,6 +212,8 @@ do
 		PKGS_ADD="$PKGS_ADD $pkg"
 	fi
 done
+
+PKGS_ADD=$(echo $PKGS_ADD)
 
 confirm() # command
 {
@@ -266,19 +271,11 @@ print_diff()
 		verbose Add:
 		printf "${BOLD}${FG_GREEN}%s${RESET}\n" "$PKGS_ADD"
 	fi
-	if $f_common && test -n "$PKGS_COM";
-	then
-		verbose Common:
-		printf "${BOLD}${FG_BLUE}%s${RESET}\n" "$PKGS_COM"
-	fi
 }
 
 print_diff
 
-#verbose ignoring packages:
-#verbose "$FG_YELLOW $PKGS_IGNORED $RESET"
-
-if $f_diff;
+if $f_dry;
 then
 	exit
 fi

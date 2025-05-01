@@ -12,16 +12,17 @@ package2 package3 # declares package2 and package3
 ```
 Once the config exists you can run the script:
 ```
-pamde [options] (file)
+Usage: pamde [options] (file)
 Options:
-  -r       Remove packages
-  -a       Add packages
-  -d       Only show diff
-  -c       Show common packages
-  -f       No confirm (Scary!)
-  -q       Quiet mode
+  -s       Sync (add/remove)
+  -c       Cleans up unused packages
   -u       Use AUR
+  -q       Quiet mode
+  -d       Dry run
+  -f       No confirm (Scary!)
   -h       Display this help message
+ --add     Add packages
+ --remove  Remove packages
 (file) defaults to /usr/local/share/pamde/main.conf
 ```
-for example, `pamde -rad` would show all changes if `pamde -ra` was run
+for example, `pamde -sd` would show all changes if `pamde -s` was run
