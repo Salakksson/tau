@@ -39,7 +39,6 @@ FG_CYAN='\033[36m'
 FG_WHITE='\033[97m'
 FG_GRAY='\033[90m'
 
-
 f_add=false
 f_remove=false
 f_clean=false
@@ -278,7 +277,7 @@ clean_packages()
 		return 0
 	fi
 	# TODO: add option to ignore packages like in yay, probably in rest of the program aswell
-	confirm pacman -Rsn $PKGS_CLEAN
+	confirm sudo pacman -Rsn $PKGS_CLEAN
 }
 
 print_diff()
