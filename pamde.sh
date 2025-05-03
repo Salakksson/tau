@@ -4,6 +4,14 @@ set -e
 
 profile_init=$(date +%s%N)
 
+# pacman_query_explicit=$(mktemp)
+# pacman_query=$(mktemp)
+
+# pacman -Qqe > "$pacman_query_explicit" &
+# pacman_explicit_pid=$!
+# pacman -Qq > "$pacman_query" &
+# pacman_pid=$!
+
 print_help()
 {
 	echo "Usage: $0 [options] (file)"
@@ -139,7 +147,6 @@ then
 	verbose using $AUR_CMD for AUR
 fi
 
-# main package lists
 SOURCE_LIST=""
 SYSTEM_LIST=""
 
@@ -148,7 +155,8 @@ then
 	query=$(date +%s%N)
 fi
 
-# query system packages
+# wait $pacman_explicit_pid
+# SYSTEM_LIST=$(<"$pacman_query_explicit")
 SYSTEM_LIST=$(pacman -Qqe)
 
 if $f_profile;
@@ -160,26 +168,29 @@ fi
 
 parse_file()
 {
-	file="$1"
-	base_dir=$(dirname "$file")
+	local file="$1"
+	local base_dir=$(dirname "$file")
 	while IFS= read -r line || test -n "$line";
 	do
-		line=$(echo "$line" | sed -e 's/#.*//' -e 's/^\s*//')
-
-		if ! test -n "$line";
-		then
-			continue
-		fi
-
-		case "$line" in
-		!include*)
-			include_file=$(echo "${line#*!include}" | sed -e 's/^ *//' -e 's/ *$//')
-			parse_file "$base_dir/$include_file"
+		local include=false
+		for word in $line;
+		do
+			if $include;
+			then
+				parse_file "$base_dir/$word"
+				include=false
+			fi
+			case $word in
+			\#*)
+				continue 2
 			;;
-		*)
-			SOURCE_LIST="$SOURCE_LIST $line"
+			!include)
+				include=true
+				continue 1
 			;;
-		esac
+			esac
+			SOURCE_LIST="$SOURCE_LIST $word"
+		done
 
 	done < "$file"
 }
@@ -190,14 +201,11 @@ if $f_profile;
 then
 	profile_config_end=$(date +%s%N)
 	echo "-p: config took $(( (profile_config_end - profile_config)/1000000 )) ms"
-	profile_filter=$(date +%s%N)
+	profile_reparse=$(date +%s%N)
 fi
 
-SOURCE_LIST=$(echo "$SOURCE_LIST" | sed 's/^ *//' | sed 's/\s\+/\n/g')
-SYSTEM_LIST=$(echo "$SYSTEM_LIST" | sed 's/\s\+/\n/g')
-
-SOURCE_LIST=$(echo "$SOURCE_LIST" | sort)
-SYSTEM_LIST=$(echo "$SYSTEM_LIST" | sort) # dont rely on pacman to sort the list
+SOURCE_LIST=$(echo $SOURCE_LIST | tr -s '[:space:]' '\n' | sort)
+SYSTEM_LIST=$(echo $SYSTEM_LIST | tr -s '[:space:]' '\n' | sort)
 
 PKGS_ADD=$(comm -23 <(echo "$SOURCE_LIST") <(echo "$SYSTEM_LIST"))
 PKGS_REM=$(comm -13 <(echo "$SOURCE_LIST") <(echo "$SYSTEM_LIST"))
@@ -205,22 +213,24 @@ PKGS_REM=$(comm -13 <(echo "$SOURCE_LIST") <(echo "$SYSTEM_LIST"))
 PKGS_ADD=$(echo $PKGS_ADD)
 PKGS_REM=$(echo $PKGS_REM)
 
-is_package_installed() # package
-{
-	package=$1
-	if pacman -Qi $package &> /dev/null;
-	then
-		return 0
-	fi
-	return 1
-}
+if $f_profile;
+then
+	profile_reparse_end=$(date +%s%N)
+	echo "-p: reparse took $(( (profile_reparse_end - profile_reparse)/1000000 )) ms"
+	profile_filter=$(date +%s%N)
+fi
+
+# wait $pacman_pid
+# installed=$(<"$pacman_query")
+
+installed=$(pacman -Qq)
 
 PKGS_ADD_OLD=$PKGS_ADD
 PKGS_ADD=""
 PKGS_IGNORED=""
 for pkg in $PKGS_ADD_OLD;
 do
-	if is_package_installed $pkg;
+	if echo "$installed" | grep -qx "$pkg";
 	then
 		PKGS_IGNORED="$PKGS_IGNORED $pkg"
 	else
