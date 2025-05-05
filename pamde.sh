@@ -4,6 +4,18 @@ set -e
 
 profile_init=$(date +%s%N)
 
+profile()
+{
+	if ! $f_profile; then
+		return
+	fi
+	section=$1
+	profile_init_end=$(date +%s%N)
+	echo "-p: init took $(( (profile_init_end - profile_init)/1000000 )) ms"
+	profile_init=$(date +%s%N)
+}
+
+
 # pacman_query_explicit=$(mktemp)
 # pacman_query=$(mktemp)
 
@@ -210,6 +222,12 @@ SYSTEM_LIST=$(echo $SYSTEM_LIST | tr -s '[:space:]' '\n' | sort)
 PKGS_ADD=$(comm -23 <(echo "$SOURCE_LIST") <(echo "$SYSTEM_LIST"))
 PKGS_REM=$(comm -13 <(echo "$SOURCE_LIST") <(echo "$SYSTEM_LIST"))
 
+if $f_clean;
+then
+	PKGS_CLEAN=$(pacman -Qdtq || true)
+	PKGS_REM="$PKGS_REM $PKGS_CLEAN"
+fi
+
 PKGS_ADD=$(echo $PKGS_ADD)
 PKGS_REM=$(echo $PKGS_REM)
 
@@ -278,18 +296,6 @@ add_packages()
 	fi
 }
 
-clean_packages()
-{
-	PKGS_CLEAN=$(pacman -Qdtq || true)
-	if test ! -n "$PKGS_CLEAN";
-	then
-		echo -e "${BOLD}${FG_GREEN}No packages to clean${RESET}"
-		return 0
-	fi
-	# TODO: add option to ignore packages like in yay, probably in rest of the program aswell
-	confirm sudo pacman -Rsn $PKGS_CLEAN
-}
-
 print_diff()
 {
 	if $f_remove && test -n "$PKGS_REM";
@@ -319,9 +325,4 @@ fi
 if $f_add && test -n "$PKGS_ADD";
 then
 	add_packages
-fi
-
-if $f_clean;
-then
-	clean_packages
 fi
