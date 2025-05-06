@@ -3,7 +3,7 @@
 Pamde is not a package manager, it is a philosophy - a way of life. \
 The idea is to track your system in a file to ensure no bloat enters its way into your system. \
 Pamde is not a replacement for pacman but an enhancement. You install a pacman package,
-then when you run `pamde` you are given a choice to either cement it in your installation
+then when you run `pamde -s` you are given a choice to either cement it in your installation
 or remove it. This reduces bloat in your system, a wet dream for any arch user.
 ## Usage
 To use the script you must first create a config file for it \
@@ -38,5 +38,5 @@ A common usage would be `pamde -scu` to clean and sync with aur
 git clone https://github.com/salakksson/pamde.git
 cd pamde
 ./install.sh
-pamde # create default config (optional)
+pamde -S # create default config (optional)
 ```
