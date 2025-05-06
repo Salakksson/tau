@@ -2,27 +2,29 @@
 
 set -e
 
-profile_init=$(date +%s%N)
+# TODO:
+## improve confirmation (yay style)
 
-profile()
+profile_section_begin=$(date +%s%N)
+
+profile_begin()
+{
+	if ! $f_profile; then
+		return
+	fi
+	profile_section_end=$(date +%s%N)
+}
+
+profile_end()
 {
 	if ! $f_profile; then
 		return
 	fi
 	section=$1
-	profile_init_end=$(date +%s%N)
-	echo "-p: init took $(( (profile_init_end - profile_init)/1000000 )) ms"
-	profile_init=$(date +%s%N)
+	profile_section_end=$(date +%s%N)
+	echo "-p: $section took $(( (profile_section_end - profile_section_begin)/1000000 )) ms"
+	profile_section_begin=$(date +%s%N)
 }
-
-
-# pacman_query_explicit=$(mktemp)
-# pacman_query=$(mktemp)
-
-# pacman -Qqe > "$pacman_query_explicit" &
-# pacman_explicit_pid=$!
-# pacman -Qq > "$pacman_query" &
-# pacman_pid=$!
 
 print_help()
 {
@@ -57,7 +59,6 @@ FG_BLUE='\033[34m'
 FG_MAGENTA='\033[35m'
 FG_CYAN='\033[36m'
 FG_WHITE='\033[97m'
-FG_GRAY='\033[90m'
 
 f_add=false
 f_remove=false
@@ -133,11 +134,7 @@ then
 	verbose "Using default source '$SOURCE'"
 fi
 
-if $f_profile;
-then
-	profile_init_end=$(date +%s%N)
-	echo "-p: init took $(( (profile_init_end - profile_init)/1000000 )) ms"
-fi
+profile_end init
 
 if ! test -e $SOURCE;
 then
@@ -162,21 +159,11 @@ fi
 SOURCE_LIST=""
 SYSTEM_LIST=""
 
-if $f_profile;
-then
-	query=$(date +%s%N)
-fi
+profile_begin
 
-# wait $pacman_explicit_pid
-# SYSTEM_LIST=$(<"$pacman_query_explicit")
 SYSTEM_LIST=$(pacman -Qqe)
 
-if $f_profile;
-then
-	query_end=$(date +%s%N)
-	echo "-p: query took $(( (query_end - query)/1000000 )) ms"
-	profile_config=$(date +%s%N)
-fi
+profile_end query
 
 parse_file()
 {
@@ -209,12 +196,7 @@ parse_file()
 
 parse_file "$SOURCE"
 
-if $f_profile;
-then
-	profile_config_end=$(date +%s%N)
-	echo "-p: config took $(( (profile_config_end - profile_config)/1000000 )) ms"
-	profile_reparse=$(date +%s%N)
-fi
+profile_end config
 
 SOURCE_LIST=$(echo $SOURCE_LIST | tr -s '[:space:]' '\n' | sort)
 SYSTEM_LIST=$(echo $SYSTEM_LIST | tr -s '[:space:]' '\n' | sort)
@@ -222,24 +204,16 @@ SYSTEM_LIST=$(echo $SYSTEM_LIST | tr -s '[:space:]' '\n' | sort)
 PKGS_ADD=$(comm -23 <(echo "$SOURCE_LIST") <(echo "$SYSTEM_LIST"))
 PKGS_REM=$(comm -13 <(echo "$SOURCE_LIST") <(echo "$SYSTEM_LIST"))
 
+profile_end preprocess
+
 if $f_clean;
 then
-	PKGS_CLEAN=$(pacman -Qdtq || true)
-	PKGS_REM="$PKGS_REM $PKGS_CLEAN"
+	PKGS_REM="$PKGS_REM $(pacman -Qdtq || true)"
+	profile_end add_clean
 fi
 
 PKGS_ADD=$(echo $PKGS_ADD)
 PKGS_REM=$(echo $PKGS_REM)
-
-if $f_profile;
-then
-	profile_reparse_end=$(date +%s%N)
-	echo "-p: reparse took $(( (profile_reparse_end - profile_reparse)/1000000 )) ms"
-	profile_filter=$(date +%s%N)
-fi
-
-# wait $pacman_pid
-# installed=$(<"$pacman_query")
 
 installed=$(pacman -Qq)
 
@@ -258,13 +232,9 @@ done
 
 PKGS_ADD=$(echo $PKGS_ADD)
 
-if $f_profile;
-then
-	profile_filter_end=$(date +%s%N)
-	echo "-p: filter took $(( (profile_filter_end - profile_filter)/1000000 )) ms"
-fi
+profile_end filter
 
-confirm() # command
+confirm()
 {
 	if $f_force;
 	then
