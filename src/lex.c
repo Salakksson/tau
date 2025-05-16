@@ -1,7 +1,5 @@
 #include "lex.h"
 
-#include "fstring.h"
-
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,7 +27,7 @@ enum_map keywords[] =
 	{K_NONE, NULL},
 };
 
-enum_map puncts[] = 
+enum_map puncts[] =
 {
 	#define X(name, str) {P_##name, str},
 	PUNCT(X)
@@ -70,17 +68,17 @@ const char* view_punct(punct p)
 lexer lexer_create(char* filepath)
 {
 	lexer l = {0};
-	
+
 	FILE* fp = fopen(filepath, "r");
 	if (!fp)
 	{
 		fatal("failed to open file '%s': %s", filepath, strerror(errno));
 	}
-	
+
 	fseek(fp, 0, SEEK_END);
 	l.sz = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
-	
+
 	l.loc.path = filepath;
 	l.loc.line = 1;
 	l.loc.col = 1;
@@ -92,7 +90,7 @@ lexer lexer_create(char* filepath)
 
 	buffer[l.sz] = 0;
 	l.buffer = buffer;
-	
+
 	fclose(fp);
 	return l;
 }
@@ -134,7 +132,7 @@ bool lexer_ispunct(char c)
 int atoi_singular(char c, int base)
 {
 	if (!isalnum(c)) return -1;
-	if ('0' <= c && c <= '9') 
+	if ('0' <= c && c <= '9')
 	{
 		int result = c - '0';
 		if (result >= base) return -1;
@@ -152,7 +150,7 @@ bool lexer_is_whitespace(lexer* lex)
 	if (lex->is_line_comment || lex->is_block_comment)
 		return true;
 	if (isspace(c)) return true;
-	
+
 	return false;
 }
 
@@ -174,19 +172,19 @@ token lexer_get_nliteral(lexer* lex)
 	token tok = {lex->loc, T_NLITERAL, {0}};
 	char c = lex->buffer[lex->ptr];
 	int base = 10;
-	if (c == '0') 
+	if (c == '0')
 	{
 		lexer_increment_ptr(lex);
 		CHECK_EOF;
 		char base_type = lex->buffer[lex->ptr];
 		switch (base_type)
 		{
-			case 'x': 
+			case 'x':
 				base = 16;
 				lexer_increment_ptr(lex);
 				CHECK_EOF;
 				break;
-			case 'b': 
+			case 'b':
 				base = 2;
 				lexer_increment_ptr(lex);
 				CHECK_EOF;
@@ -196,6 +194,7 @@ token lexer_get_nliteral(lexer* lex)
 		}
 	}
 	int64_t sum = 0;
+	// TODO warn on overflow
 	while (true)
 	{
 		char c = lex->buffer[lex->ptr];
@@ -246,7 +245,7 @@ token lexer_get_sliteral(lexer* lex)
 			str = realloc(str, (bufsz *= 2));
 		}
 		char c = lex->buffer[lex->ptr];
-		if (c == '\"') 
+		if (c == '\"')
 		{
 			str[len] = 0;
 			lexer_increment_ptr(lex);
@@ -257,7 +256,7 @@ token lexer_get_sliteral(lexer* lex)
 		{
 			lexer_increment_ptr(lex);
 			CHECK_EOF;
-			
+
 			c = get_escaped_char(lex->buffer[lex->ptr]);
 		}
 		str[len] = c;
@@ -290,9 +289,9 @@ token lexer_get_cliteral(lexer* lex)
 	}
 	lexer_increment_ptr(lex);
 	CHECK_EOF;
-	if (lex->buffer[lex->ptr] != '\'') 
+	if (lex->buffer[lex->ptr] != '\'')
 	{
-		return (token){lex->loc, T_ERR, {.err = fstring("no ending quote")}};
+		return (token){lex->loc, T_ERR, {.err = "no ending quote"}};
 	}
 	lexer_increment_ptr(lex); // skip quote
 	tok.numeric = c;
@@ -310,7 +309,7 @@ token lexer_get_punct(lexer* lex)
 	{
 		if (len + 1 >= bufsz) str = realloc(str, (bufsz *= 2));
 
-		if (!lexer_ispunct(lex->buffer[lex->ptr])) 
+		if (!lexer_ispunct(lex->buffer[lex->ptr]))
 		{
 			free(str);
 			return (token){loc, T_PUNCT, {.e = current_enum}};
@@ -375,22 +374,22 @@ start:
 			goto start;
 		}
 	}
-	
+
 
 	char c = lex->buffer[lex->ptr];
-	
+
 	if (!isprint(c))
 	{
 		lexer_increment_ptr(lex);
 		return (token) {lex->loc, T_ERR, {.err = "Unexpected char"}};
 	}
-	
+
 	if (isdigit(c)) return lexer_get_nliteral(lex);
 	if (c == '\"') return lexer_get_sliteral(lex);
 	if (c == '\'') return lexer_get_cliteral(lex);
-	
+
 	if (lexer_ispunct(c)) return lexer_get_punct(lex);
-	
+
 	if (lexer_isbeginid(c)) return lexer_get_id(lex);
 	return (token){lex->loc, T_ERR, {.err = "if this occurs then: ☹  "}};
 }

@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "msg.h"
+#include "diag.h"
 
 #include "x_macros.h"
 
@@ -56,7 +56,7 @@ typedef struct
 		T_CLITERAL,
 		T_KEYWORD,
 	} type;
-	
+
 	union {
 		int e;
 		uint64_t numeric;
@@ -71,9 +71,9 @@ typedef struct
 	const char* buffer;
 	size_t sz;
 	size_t ptr;
-	
+
 	location loc;
-	
+
 	bool is_line_comment;
 	bool is_block_comment;
 
