@@ -31,34 +31,38 @@ void diag(diag_type type, const char* message, ...)
 
 	switch (type)
 	{
-		case DIAG_FATAL:
-			prefix = " × INTERNAL ERROR: ";
-			color = COLOR_RED;
-			break;
-		case DIAG_ERROR:
-			prefix = " × ERROR: ";
-			color = COLOR_RED;
-			break;
-		case DIAG_WARNING:
-			prefix = " ~ WARNING: ";
-			color = COLOR_YELLOW;
-			break;
-		case DIAG_INFO:
-			prefix = " - Info: ";
-			color = COLOR_BLUE;
-			break;
-		case DIAG_DEBUG:
+	case DIAG_FATAL:
+		prefix = " × INTERNAL ERROR: ";
+		color = COLOR_RED;
+		break;
+	case DIAG_TODO:
+		prefix = " × TODO: ";
+		color = COLOR_RED;
+		break;
+	case DIAG_ERROR:
+		prefix = " × ERROR: ";
+		color = COLOR_RED;
+		break;
+	case DIAG_WARNING:
+		prefix = " ~ WARNING: ";
+		color = COLOR_YELLOW;
+		break;
+	case DIAG_INFO:
+		prefix = " - Info: ";
+		color = COLOR_BLUE;
+		break;
+	case DIAG_DEBUG:
 #ifdef DEBUG
-			prefix = " ? Debug: ";
-			color = COLOR_MAGENTA;
-			break;
+		prefix = " ? Debug: ";
+		color = COLOR_MAGENTA;
+		break;
 #else
-			return;
+		return;
 #endif
-		default:
-			prefix = "";
-			color = COLOR_RESET;
-			break;
+	default:
+		prefix = "";
+		color = COLOR_RESET;
+		break;
 	}
 
 	printf("%s%s", color, prefix);

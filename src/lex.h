@@ -61,7 +61,7 @@ typedef struct
 		int e;
 		uint64_t numeric;
 		char* str;
-		const char* err;
+		const char* err; // TODO: remove this
 	};
 
 } token;

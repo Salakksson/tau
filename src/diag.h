@@ -7,7 +7,8 @@ typedef enum
 	DIAG_INFO,
 	DIAG_WARNING,
 	DIAG_ERROR,
-	DIAG_FATAL
+	DIAG_FATAL,
+	DIAG_TODO,
 } diag_type;
 
 void diag_set_level(diag_type level);
