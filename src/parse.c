@@ -12,10 +12,14 @@ static ast init_ast()
 
 static bool tok_is_type(token tok)
 {
-	// TODO: implement types other than int
+	// TODO: implement type list (IMPORTANT AND NOT TOO HARD)
 	if (tok.type != T_ID) return false;
 	return !strcmp(tok.str, "int");
 }
+
+// TODO: implement scope stack for identifying variables \
+this should be done in the parser to avoid future pain and suffering
+// TODO: just implement a fucking stack in general
 
 static syntax_node get_type_and_id(ast* tree, lexer* lex)
 {
@@ -43,7 +47,7 @@ static syntax_node get_type_and_id(ast* tree, lexer* lex)
 		}
 		else if (tok.type == T_ID)
 		{
-			// assume its not redefined, TODO: check this
+			// assume its not redefined, TODO: check this, NEED THE FUCKING STACK
 			if (got_id)
 			{
 				err(tok.loc, "two ids");
@@ -60,7 +64,7 @@ static syntax_node get_type_and_id(ast* tree, lexer* lex)
 	// assume assignement, semi or brace
 	if (tok.type != T_PUNCT)
 	{
-		err(tok.loc, "fuck knows");
+		err(tok.loc, "fuck knows whats going on");
 		return type_and_id;
 	}
 	switch (tok.e)
@@ -105,6 +109,10 @@ static syntax_node get_expression(lexer* lex)
 static syntax_node get_function(ast* tree, lexer* lex)
 {
 	todo("implement functions");
+	// - [ ] parse function arglist, (first support no arguments)
+	// - [ ] implement parse scope, make it easier to allow for lambdas later
+	// - [ ] parse general statement, implement get_expression fully
+	// - [ ] touch grass
 }
 
 static void get_global_node(ast* tree, lexer* lex)
