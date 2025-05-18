@@ -209,18 +209,21 @@ static token lexer_get_nliteral(lexer* lex)
 				if (isdigit(base_type)) base = 8;
 		}
 	}
-	int64_t sum = 0;
-	// TODO warn on overflow
+	uint64_t sum = 0;
+	// TODO: FLOATING POINTS
+	bool warn_overflow = false;
 	while (true)
 	{
-		char c = lex->buffer[lex->ptr];
+		char c = lex->buffer[lex->ptr]; // todo: i think this *might* fail on eof?
 		int i = atoi_singular(c, base);
 		if (i < 0) break;
-		sum *= base;
-		sum += i;
+		uint64_t shifted = sum * base;
+		if (shifted / base != sum) warn_overflow = true;
+		sum = shifted + i;
 		lexer_increment_ptr(lex);
 		CHECK_EOF;
 	}
+	if (warn_overflow) warn(tok.loc, "int literal too large for my shitty lexer");
 	tok.numeric = sum;
 	return tok;
 }

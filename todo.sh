@@ -30,6 +30,6 @@ then
 	echo "$output"
 	exit 0
 fi
-index=$(( $RANDOM % $lines ))
+index=$(( $RANDOM % $lines + 1))
 
 sed "${index}q;d" <(echo "$output")

@@ -102,7 +102,7 @@ static syntax_node get_expression(lexer* lex)
 
 static syntax_node get_function(ast* tree, lexer* lex)
 {
-	todo("idfk");
+	todo("implement functions");
 }
 
 static void get_global_node(ast* tree, lexer* lex)
