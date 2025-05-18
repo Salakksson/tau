@@ -89,7 +89,6 @@ static syntax_node get_expression(lexer* lex)
 	{
 	case T_NLITERAL:
 	case T_SLITERAL:
-	case T_CLITERAL:
 		expr.kind = NODE_LITERAL;
 		expr.literal = tok;
 		break;

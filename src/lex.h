@@ -39,7 +39,6 @@ typedef enum
 	T_PUNCT,
 	T_NLITERAL,
 	T_SLITERAL,
-	T_CLITERAL,
 	T_KEYWORD,
 } token_kind;
 

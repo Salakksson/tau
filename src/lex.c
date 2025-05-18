@@ -254,6 +254,7 @@ static token lexer_get_sliteral(lexer* lex)
 	lexer_increment_ptr(lex); // skip quote
 	CHECK_EOF;
 
+	// TODO: proper multiline strings
 	while(true)
 	{
 		if (len >= bufsz)
@@ -284,24 +285,23 @@ static token lexer_get_sliteral(lexer* lex)
 
 static token lexer_get_cliteral(lexer* lex)
 {
-	token tok = {lex->loc, T_CLITERAL, {0}};
+	token tok = {lex->loc, T_NLITERAL, {0}};
 
 	lexer_increment_ptr(lex); // skip quote
 	CHECK_EOF;
 
 	char c = lex->buffer[lex->ptr];
+	// TODO: check for shit like raw newline
 	if (c == '\\')
 	{
 		lexer_increment_ptr(lex);
 		CHECK_EOF;
 		c = lex->buffer[lex->ptr];
-		// TODO: checks
 		c = get_escaped_char(c);
 	}
 	else
 	{
 		c = lex->buffer[lex->ptr];
-		// TODO: checks
 	}
 	lexer_increment_ptr(lex);
 	CHECK_EOF;
@@ -392,7 +392,6 @@ start:
 		}
 	}
 
-
 	char c = lex->buffer[lex->ptr];
 
 	if (!isprint(c))
@@ -411,13 +410,6 @@ start:
 	else err(lex->loc, "wierd character ig?");
 
 	if (tok.type == T_GET_NEXT) return lexer_get_token(lex);
-	return tok;
-}
-
-// TODO: remove this
-static token lexer_convert_cliteral(token tok)
-{
-	tok.type = T_NLITERAL;
 	return tok;
 }
 
@@ -449,8 +441,6 @@ token lexer_get_token(lexer* lex)
 	case T_NLITERAL:
 	case T_SLITERAL:
 		return tok;
-	case T_CLITERAL:
-		return lexer_convert_cliteral(tok);
 	case T_ID:
 		return lexer_convert_id(tok);
 	case T_GET_NEXT: // Shouldnt happen but just in case idk
