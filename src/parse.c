@@ -23,14 +23,16 @@ static syntax_node get_type_and_id(ast* tree, lexer* lex)
 	bool got_type = false;
 	bool got_id = false;
 
+	int count = 0;
 	while (true)
 	{
+		count++;
+		if (count >= 20) fatal("infinite loop, exiting");
 		token tok = lexer_get_token(lex);
 		info("parsing token: %s", view_token(tok));
 
 		if (tok_is_type(tok))
 		{
-			info("parsing type");
 			if (got_type)
 			{
 				err(tok.loc, "two types");
@@ -41,7 +43,6 @@ static syntax_node get_type_and_id(ast* tree, lexer* lex)
 		}
 		else if (tok.type == T_ID)
 		{
-			info("parsing id");
 			// assume its not redefined, TODO: check this
 			if (got_id)
 			{
@@ -53,7 +54,6 @@ static syntax_node get_type_and_id(ast* tree, lexer* lex)
 		}
 		else err(tok.loc, "qualispecs unsupported");
 		// TODO: add qualispec parsing
-		info("bools: %i %i values: %i %p", got_type, got_id, type_and_id.var.type.kind, type_and_id.var.name);
 		if (got_type && got_id) break;
 	}
 	token tok = lexer_get_token(lex);
@@ -97,6 +97,8 @@ static syntax_node get_expression(lexer* lex)
 		err(tok.loc, "expected literal");
 		break;
 	}
+	tok = lexer_get_token(lex);
+	if (tok.type != T_PUNCT && tok.e != P_SEMICOLON) err(tok.loc, "unexpected token: '%s'", view_token(tok));
 	return expr;
 }
 
