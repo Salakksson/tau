@@ -95,17 +95,20 @@ void diag(diag_kind type, location loc, const char* message, ...)
 	ptr += vsprintf(ptr, message, args);
 	ptr += sprintf(ptr, "%s", COLOR_RESET);
 
+	va_end(args);
+	va_end(check_size);
+
 	if (type == DIAG_FATAL || type == DIAG_TODO)
 	{
 		puts(msg);
 		exit(1);
 	}
 	else if (type == DIAG_INFO)
+	{
 		puts(msg);
-
+		free(msg);
+		return;
+	}
 
 	diag_push(d);
-
-	va_end(args);
-	va_end(check_size);
  }

@@ -4,7 +4,6 @@
 
 int main(int argc, char** argv)
 {
-	// char* name = argv[0];
 	for (int i = 1; i < argc; i++)
 	{
 		info(argv[i]);
