@@ -77,7 +77,20 @@ static syntax_node get_type_and_id(ast* tree, lexer* lex)
 
 static syntax_node get_expression(lexer* lex)
 {
-	todo("urmom");
+	// todo: parse shit more complex than a literal
+	syntax_node expr = {0};
+	token tok = lexer_get_token(lex);
+	switch (tok.type)
+	{
+	case T_NLITERAL:
+	case T_SLITERAL:
+	case T_CLITERAL:
+		expr.kind = NODE_LITERAL;
+		expr.literal = tok;
+	default:
+		expr.kind = NODE_ERROR;
+		err("expected literal");
+	}
 }
 
 static syntax_node get_function(ast* tree, lexer* lex)

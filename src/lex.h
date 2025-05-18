@@ -42,20 +42,23 @@ typedef struct
 	int col;
 } location;
 
+typedef enum
+{
+	T_EOF = 0,
+	T_ERR,
+	T_ID,
+	T_PUNCT,
+	T_NLITERAL,
+	T_SLITERAL,
+	T_CLITERAL,
+	T_KEYWORD,
+} token_kind;
+
 typedef struct
 {
 	location loc;
 
-	enum {
-		T_EOF = 0,
-		T_ERR,
-		T_ID,
-		T_PUNCT,
-		T_NLITERAL,
-		T_SLITERAL,
-		T_CLITERAL,
-		T_KEYWORD,
-	} type;
+	token_kind type;
 
 	union {
 		int e;
