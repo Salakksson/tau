@@ -13,7 +13,7 @@ static ast init_ast()
 static bool tok_is_type(token tok)
 {
 	// TODO: implement types other than int
-	if (tok.type != T_KEYWORD) return false;
+	if (tok.type != T_ID) return false;
 	return !strcmp(tok.str, "int");
 }
 
@@ -25,20 +25,23 @@ static syntax_node get_type_and_id(ast* tree, lexer* lex)
 
 	while (true)
 	{
-		if (got_type && got_id) break;
 		token tok = lexer_get_token(lex);
+		info("parsing token: %s", view_token(tok));
+
 		if (tok_is_type(tok))
 		{
+			info("parsing type");
 			if (got_type)
 			{
 				err(tok.loc, "two types");
 				break;
 			}
 			type_and_id.var.type = (type_tree){.kind = TYPE_INTEGER, .width = 32};
-			continue;
+			got_type = true;
 		}
-		if (tok.type == T_ID)
+		else if (tok.type == T_ID)
 		{
+			info("parsing id");
 			// assume its not redefined, TODO: check this
 			if (got_id)
 			{
@@ -46,10 +49,12 @@ static syntax_node get_type_and_id(ast* tree, lexer* lex)
 				break;
 			}
 			type_and_id.var.name = tok.str;
-			continue;
+			got_id = true;
 		}
+		else err(tok.loc, "qualispecs unsupported");
 		// TODO: add qualispec parsing
-		err(tok.loc, "qualispecs unsupported");
+		info("bools: %i %i values: %i %p", got_type, got_id, type_and_id.var.type.kind, type_and_id.var.name);
+		if (got_type && got_id) break;
 	}
 	token tok = lexer_get_token(lex);
 	// assume assignement, semi or brace
@@ -87,10 +92,13 @@ static syntax_node get_expression(lexer* lex)
 	case T_CLITERAL:
 		expr.kind = NODE_LITERAL;
 		expr.literal = tok;
+		break;
 	default:
 		expr.kind = NODE_ERROR;
 		err(tok.loc, "expected literal");
+		break;
 	}
+	return expr;
 }
 
 static syntax_node get_function(ast* tree, lexer* lex)
@@ -111,7 +119,6 @@ static void get_global_node(ast* tree, lexer* lex)
 	if (node.kind == NODE_LVALUE)
 	{
 		syntax_node value = get_expression(lex);
-		todo("read lvalues");
 	}
 	if (node.kind == NODE_FUNCTION)
 	{
@@ -126,7 +133,6 @@ ast parse(lexer* lex)
 	{
 		token tok = lexer_peek_token(lex);
 		if (tok.type == T_EOF) return tree;
-
 		get_global_node(&tree, lex);
 	}
 }

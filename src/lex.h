@@ -17,8 +17,6 @@ typedef enum
 	#undef X
 } keyword;
 
-const char* view_keyword(keyword);
-
 typedef enum
 {
 	P_NONE = 0,
@@ -26,8 +24,6 @@ typedef enum
 	PUNCT(X)
 	#undef X
 } punct;
-
-const char* view_punct(punct);
 
 typedef struct
 {
@@ -73,6 +69,10 @@ typedef struct
 	bool is_block_comment;
 
 } lexer;
+
+const char* view_keyword(keyword);
+const char* view_punct(punct);
+const char *view_token(token);
 
 lexer lexer_create(char* source);
 

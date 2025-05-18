@@ -36,7 +36,7 @@ static enum_map puncts[] =
 const char* view_keyword(keyword k)
 {
 	int i = 0;
-	while(true)
+	while (true)
 	{
 		enum_map compare = keywords[i++];
 		if (compare.str == 0)
@@ -51,7 +51,7 @@ const char* view_keyword(keyword k)
 const char* view_punct(punct p)
 {
 	int i = 0;
-	while(true)
+	while (true)
 	{
 		enum_map compare = puncts[i++];
 		if (compare.str == 0)
@@ -60,6 +60,24 @@ const char* view_punct(punct p)
 		{
 			return compare.str;
 		}
+	}
+}
+
+const char* view_token(token tok)
+{
+	switch (tok.type)
+	{
+	case T_PUNCT: return view_punct(tok.e);
+	case T_KEYWORD: return view_punct(tok.e);
+	case T_ID:
+	case T_SLITERAL:
+		return tok.str;
+	case T_NLITERAL:
+		return "69";
+	case T_EOF:
+		return "EOF";
+	default:
+		return "idfk";
 	}
 }
 

@@ -10,6 +10,9 @@ int main(int argc, char** argv)
 	}
 	lexer lex = lexer_create("test/lexer.tau");
 	token tok = {0};
+	ast tree = parse(&lex);
+
+	return 0;
 	while ((tok = lexer_get_token(&lex)).type != T_EOF)
 	{
 		switch(tok.type)
