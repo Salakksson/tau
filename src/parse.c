@@ -31,7 +31,7 @@ static syntax_node get_type_and_id(ast* tree, lexer* lex)
 		{
 			if (got_type)
 			{
-				err("two types");
+				err(tok.loc, "two types");
 				break;
 			}
 			type_and_id.var.type = (type_tree){.kind = TYPE_INTEGER, .width = 32};
@@ -42,20 +42,20 @@ static syntax_node get_type_and_id(ast* tree, lexer* lex)
 			// assume its not redefined, TODO: check this
 			if (got_id)
 			{
-				err("two ids");
+				err(tok.loc, "two ids");
 				break;
 			}
 			type_and_id.var.name = tok.str;
 			continue;
 		}
 		// TODO: add qualispec parsing
-		err("qualispecs unsupported");
+		err(tok.loc, "qualispecs unsupported");
 	}
 	token tok = lexer_get_token(lex);
 	// assume assignement, semi or brace
 	if (tok.type != T_PUNCT)
 	{
-		err("fuck knows");
+		err(tok.loc, "fuck knows");
 		return type_and_id;
 	}
 	switch (tok.e)
@@ -70,7 +70,7 @@ static syntax_node get_type_and_id(ast* tree, lexer* lex)
 		type_and_id.kind = NODE_LVALUE;
 		return type_and_id;
 	default:
-		err("expected = ; or (");
+		err(tok.loc, "expected = ; or (");
 		return type_and_id;
 	}
 }
@@ -89,7 +89,7 @@ static syntax_node get_expression(lexer* lex)
 		expr.literal = tok;
 	default:
 		expr.kind = NODE_ERROR;
-		err("expected literal");
+		err(tok.loc, "expected literal");
 	}
 }
 

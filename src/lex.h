@@ -35,17 +35,10 @@ typedef struct
 	const char* str;
 } enum_map;
 
-typedef struct
-{
-	char* path;
-	int line;
-	int col;
-} location;
-
 typedef enum
 {
 	T_EOF = 0,
-	T_ERR,
+	T_GET_NEXT,
 	T_ID,
 	T_PUNCT,
 	T_NLITERAL,
@@ -64,7 +57,6 @@ typedef struct
 		int e;
 		uint64_t numeric;
 		char* str;
-		const char* err; // TODO: remove this
 	};
 
 } token;

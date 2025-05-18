@@ -1,6 +1,8 @@
 #ifndef DIAG_H_
 #define DIAG_H_
 
+#include <stddef.h>
+
 typedef enum
 {
 	DIAG_DEBUG,
@@ -9,28 +11,40 @@ typedef enum
 	DIAG_ERROR,
 	DIAG_FATAL,
 	DIAG_TODO,
-} diag_type;
+} diag_kind;
 
-void diag_set_level(diag_type level);
-void diag(diag_type type, const char* message, ...);
+typedef struct
+{
+	char* path;
+	int line;
+	int col;
+} location;
 
-#define _STRING_LITERAL(a) #a
-#define STRING_LITERAL(a) _STRING_LITERAL(a)
+#define LOC_INTERNAL (location){ __FILE__, __LINE__, 0}
 
-#define FILE_LINE() __FILE__ ":" STRING_LITERAL(__LINE__)
+typedef struct
+{
+	char* msg;
+	location loc;
+} diagnostic;
 
-#define err(str, ...) diag(DIAG_ERROR, str " - " FILE_LINE(), ##__VA_ARGS__)
-#define fatal(str, ...) diag(DIAG_FATAL, str " - " FILE_LINE(), ##__VA_ARGS__)
-#define warn(str, ...) diag(DIAG_WARNING, str " - " FILE_LINE(), ##__VA_ARGS__)
+void diag_set_level(diag_kind level);
+void diag(diag_kind type, location loc, const char* message, ...);
 
-#define todo(str, ...) diag(DIAG_TODO, str " - " FILE_LINE(), ##__VA_ARGS__)
+// Code errors
+#define err(loc, str, ...) diag(DIAG_ERROR, loc, str, ##__VA_ARGS__)
+#define warn(loc, str, ...) diag(DIAG_WARNING, loc, str, ##__VA_ARGS__)
+
+// Internal errors
+#define fatal(str, ...) diag(DIAG_FATAL, LOC_INTERNAL, str, ##__VA_ARGS__)
+#define todo(str, ...) diag(DIAG_TODO, LOC_INTERNAL, str, ##__VA_ARGS__)
+#define info(str, ...) diag(DIAG_INFO, LOC_INTERNAL, str, ##__VA_ARGS__)
 
 #undef assert
 #define assert(cond, ...) ( \
 	(cond) ? (void)0 \
-		 : diag(DIAG_FATAL, \
-"Assertion '" #cond "' failed - " FILE_LINE() ": " __VA_ARGS__) \
+	: diag(DIAG_FATAL, LOC_INTERNAL \
+"Assertion '" #cond "' failed - " __VA_ARGS__) \
 )
-
 
 #endif

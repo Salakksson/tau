@@ -6,12 +6,10 @@
 #include <string.h>
 #include <errno.h>
 
-#define TOK_UNIMPLEMENTED (token){T_ERR, {.err = "UNIMPLEMETNED TOKEN"}}
 #define TOK_EOF (token){lex->loc, T_EOF, {0}};
+#define TOK_GET_NEXT (token){lex->loc, T_GET_NEXT, {0}}
 
 #define CHECK_EOF if (lex->ptr >= lex->sz) return TOK_EOF
-
-#define TODO(msg) ((void)fprintf(stderr, "todo: %s", msg), (void)exit(0))
 
 #ifndef __GNUC__
 #ifndef __clang__
@@ -19,7 +17,7 @@
 #endif
 #endif
 
-enum_map keywords[] =
+static enum_map keywords[] =
 {
 	#define X(name, str) {K_##name, str},
 	KEYWORD(X)
@@ -27,7 +25,7 @@ enum_map keywords[] =
 	{K_NONE, NULL},
 };
 
-enum_map puncts[] =
+static enum_map puncts[] =
 {
 	#define X(name, str) {P_##name, str},
 	PUNCT(X)
@@ -95,33 +93,33 @@ lexer lexer_create(char* filepath)
 	return l;
 }
 
-void lexer_increment_ptr(lexer* lex)
+static void lexer_increment_ptr(lexer* lex)
 {
-	if (lex->ptr  != lex->sz)
-		if (lex->buffer[lex->ptr] == '\n')
-		{
-			lex->loc.line++;
-			lex->loc.col = 1;
-			lex->ptr++;
-			return;
-		}
+	if (lex->ptr <= lex->sz &&
+	    lex->buffer[lex->ptr] == '\n')
+	{
+		lex->loc.line++;
+		lex->loc.col = 1;
+		lex->ptr++;
+		return;
+	}
 	lex->ptr++;
 	lex->loc.col++;
 }
 
-bool lexer_isbeginid(char c)
+static bool lexer_isbeginid(char c)
 {
 	if (c == '_') return true;
 	return isalpha(c);
 }
 
-bool lexer_isinid(char c)
+static bool lexer_isinid(char c)
 {
 	if (c == '_') return true;
 	return isalnum(c);
 }
 
-bool lexer_ispunct(char c)
+static bool lexer_ispunct(char c)
 {
 	if (c == '_') return false;
 	if (c == '\'') return false;
@@ -129,7 +127,7 @@ bool lexer_ispunct(char c)
 	return ispunct(c);
 }
 
-int atoi_singular(char c, int base)
+static int atoi_singular(char c, int base)
 {
 	if (!isalnum(c)) return -1;
 	if ('0' <= c && c <= '9')
@@ -144,7 +142,7 @@ int atoi_singular(char c, int base)
 	return result;
 }
 
-bool lexer_is_whitespace(lexer* lex)
+static bool lexer_is_whitespace(lexer* lex)
 {
 	char c = lex->buffer[lex->ptr];
 	if (lex->is_line_comment || lex->is_block_comment)
@@ -154,20 +152,20 @@ bool lexer_is_whitespace(lexer* lex)
 	return false;
 }
 
-void lexer_skip_whitespace(lexer* lex)
+static void lexer_skip_whitespace(lexer* lex)
 {
 	while (lexer_is_whitespace(lex))
 	{
 		if (lex->is_block_comment)
 		{
-			TODO("block comments");
+			todo("block comments");
 		}
 		if (lex->buffer[lex->ptr] == '\n') lex->is_line_comment = false;
 		lexer_increment_ptr(lex);
 	}
 }
 
-token lexer_get_nliteral(lexer* lex)
+static token lexer_get_nliteral(lexer* lex)
 {
 	token tok = {lex->loc, T_NLITERAL, {0}};
 	char c = lex->buffer[lex->ptr];
@@ -209,7 +207,7 @@ token lexer_get_nliteral(lexer* lex)
 	return tok;
 }
 
-char get_escaped_char(char c)
+static char get_escaped_char(char c)
 {
 	switch (c)
 	{
@@ -228,7 +226,7 @@ char get_escaped_char(char c)
 	}
 }
 
-token lexer_get_sliteral(lexer* lex)
+static token lexer_get_sliteral(lexer* lex)
 {
 	location loc = lex->loc;
 	int bufsz = 10;
@@ -266,7 +264,7 @@ token lexer_get_sliteral(lexer* lex)
 	}
 }
 
-token lexer_get_cliteral(lexer* lex)
+static token lexer_get_cliteral(lexer* lex)
 {
 	token tok = {lex->loc, T_CLITERAL, {0}};
 
@@ -291,14 +289,15 @@ token lexer_get_cliteral(lexer* lex)
 	CHECK_EOF;
 	if (lex->buffer[lex->ptr] != '\'')
 	{
-		return (token){lex->loc, T_ERR, {.err = "no ending quote"}};
+		err(tok.loc, "missing ending quote in cliteral");
+		return TOK_GET_NEXT;
 	}
 	lexer_increment_ptr(lex); // skip quote
 	tok.numeric = c;
 	return tok;
 }
 
-token lexer_get_punct(lexer* lex)
+static token lexer_get_punct(lexer* lex)
 {
 	location loc = lex->loc;
 	int bufsz = 10;
@@ -338,7 +337,7 @@ token lexer_get_punct(lexer* lex)
 	}
 }
 
-token lexer_get_id(lexer* lex)
+static token lexer_get_id(lexer* lex)
 {
 	location loc = lex->loc;
 	int bufsz = 10;
@@ -360,7 +359,7 @@ token lexer_get_id(lexer* lex)
 	}
 }
 
-token lexer_get_token_raw(lexer* lex)
+static token lexer_get_token_raw(lexer* lex)
 {
 start:
 	lexer_skip_whitespace(lex);
@@ -381,26 +380,30 @@ start:
 	if (!isprint(c))
 	{
 		lexer_increment_ptr(lex);
-		return (token) {lex->loc, T_ERR, {.err = "Unexpected char"}};
+		err(lex->loc, "Unexpected char");
 	}
 
-	if (isdigit(c)) return lexer_get_nliteral(lex);
-	if (c == '\"') return lexer_get_sliteral(lex);
-	if (c == '\'') return lexer_get_cliteral(lex);
+	token tok = TOK_GET_NEXT;
 
-	if (lexer_ispunct(c)) return lexer_get_punct(lex);
+	if (isdigit(c)) tok = lexer_get_nliteral(lex);
+	else if (c == '\"') tok = lexer_get_sliteral(lex);
+	else if (c == '\'') tok = lexer_get_cliteral(lex);
+	else if (lexer_ispunct(c)) tok = lexer_get_punct(lex);
+	else if (lexer_isbeginid(c)) tok = lexer_get_id(lex);
+	else err(lex->loc, "wierd character ig?");
 
-	if (lexer_isbeginid(c)) return lexer_get_id(lex);
-	return (token){lex->loc, T_ERR, {.err = "if this occurs then: ☹  "}};
+	if (tok.type == T_GET_NEXT) return lexer_get_token(lex);
+	return tok;
 }
 
-token lexer_convert_cliteral(token tok)
+// TODO: remove this
+static token lexer_convert_cliteral(token tok)
 {
 	tok.type = T_NLITERAL;
 	return tok;
 }
 
-token lexer_convert_id(token tok)
+static token lexer_convert_id(token tok)
 {
 	int i = 0;
 	while(true)
@@ -423,22 +426,24 @@ token lexer_get_token(lexer* lex)
 	token tok = lexer_get_token_raw(lex);
 	switch(tok.type)
 	{
-		case T_EOF:
-		case T_ERR:
-		case T_PUNCT:
-		case T_NLITERAL:
-		case T_SLITERAL:
-			return tok;
-		case T_CLITERAL:
-			return lexer_convert_cliteral(tok);
-		case T_ID:
-			return lexer_convert_id(tok);
-		default:
-			fatal("invalid token");
+	case T_EOF:
+	case T_PUNCT:
+	case T_NLITERAL:
+	case T_SLITERAL:
+		return tok;
+	case T_CLITERAL:
+		return lexer_convert_cliteral(tok);
+	case T_ID:
+		return lexer_convert_id(tok);
+	case T_GET_NEXT: // Shouldnt happen but just in case idk
+		return lexer_get_token(lex);
+	default:
+		fatal("invalid token");
 	}
 	__builtin_unreachable();
 }
 
+// TODO: make peek_token smarter
 token lexer_peek_token(lexer* lex)
 {
 	lexer copy = *lex;
