@@ -1,4 +1,4 @@
-bin/*
-tau
+.build/*
+tauc
 .clangd
 autoc.ini
