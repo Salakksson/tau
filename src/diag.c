@@ -103,7 +103,7 @@ void diag(diag_kind type, location loc, const char* message, ...)
 		puts(msg);
 		exit(1);
 	}
-	else if (type == DIAG_INFO)
+	else if (type == DIAG_INFO || true)
 	{
 		puts(msg);
 		free(msg);

@@ -12,9 +12,9 @@
 
 #define da_append(list, item) \
 do { \
-	if ((list).length >= (list).capacity) \
+	if ((list).length >= (list).capacity) { \
 		(list).capacity *= 2; \
-		(list).items = realloc((list).items, sizeof(*(list).items) * (list).capacity); \
+		(list).items = realloc((list).items, sizeof(*(list).items) * (list).capacity); } \
 	(list).items[(list).length] = item; \
 	(list).length++; \
 } while(0)

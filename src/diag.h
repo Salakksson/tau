@@ -35,9 +35,11 @@ void diag(diag_kind type, location loc, const char* message, ...);
 #define err(loc, str, ...) diag(DIAG_ERROR, loc, str, ##__VA_ARGS__)
 #define warn(loc, str, ...) diag(DIAG_WARNING, loc, str, ##__VA_ARGS__)
 
+#define __NORETURN__(statement) do {statement; __builtin_unreachable();} while(0)
+
 // Internal errors
-#define fatal(str, ...) diag(DIAG_FATAL, LOC_INTERNAL, str, ##__VA_ARGS__)
-#define todo(str, ...) diag(DIAG_TODO, LOC_INTERNAL, str, ##__VA_ARGS__)
+#define fatal(str, ...) __NORETURN__(diag(DIAG_FATAL, LOC_INTERNAL, str, ##__VA_ARGS__))
+#define todo(str, ...) __NORETURN__(diag(DIAG_TODO, LOC_INTERNAL, str, ##__VA_ARGS__))
 #define info(str, ...) diag(DIAG_INFO, LOC_INTERNAL, str, ##__VA_ARGS__)
 
 #undef assert
