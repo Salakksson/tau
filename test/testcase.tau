@@ -1,3 +1,4 @@
+#use "io.tau"
 
 int main()
 {
@@ -5,5 +6,4 @@ int main()
 	int b = 35;
 	string format = f"{a + b}";
 	if (true) print(format);
-
 }
