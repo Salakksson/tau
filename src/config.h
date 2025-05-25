@@ -3,10 +3,15 @@
 
 #include "da.h"
 
+#define DEFAULT_CONFIG "urmom.pam"
+
 typedef struct
 {
 	char mode;
+	const char* file;
 	DA(char) flags;
+	DA(char*) config_packages;
+	DA(char*) installed_packages;
 	DA(const char*) args;
 } config;
 
@@ -14,9 +19,9 @@ void display_help(char mode, int exit_code);
 bool parse_arg(config* conf, const char* arg);
 
 #define MODES "SQTCP"
-#define GLOBAL_FLAGS "h"
-#define S_FLAGS "aro"
-#define Q_FLAGS "darc"
+#define GLOBAL_FLAGS "hc"
+#define S_FLAGS "arou"
+#define Q_FLAGS "dar"
 #define T_FLAGS "rd"
 #define C_FLAGS "rd"
 #define P_FLAGS ""
@@ -25,7 +30,7 @@ bool parse_arg(config* conf, const char* arg);
 
 void display_help(char mode, int exit_code)
 {
-	puts("TODO: help");
+	puts("TODO: display help");
 
 	exit(exit_code);
 }
@@ -82,6 +87,6 @@ bool parse_arg(config* conf, const char* arg)
 	return true;
 }
 
-#endif
+#endif // Implementation
 
 #endif

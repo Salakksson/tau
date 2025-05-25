@@ -3,8 +3,8 @@
 set -e
 
 CC=gcc
-CCFLAGS=" -Wall -O0 -g"
-LDFLAGS=" "
+CCFLAGS=" -Wall -O0 -g -fsanitize=address,undefined"
+LDFLAGS=" -fsanitize=address,undefined"
 
 BUILD_DIR="build"
 BIN_DIR="$BUILD_DIR/bin"
