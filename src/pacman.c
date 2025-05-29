@@ -79,6 +79,36 @@ bool parse_config_file(config* conf)
 	return true;
 }
 
+bool query_system_packages(config* conf)
+{
+	_da_char_ buffer;
+	da_construct(buffer, 128);
+	command cmd = create_cmd("sudo", "pacman", "-Qqe");
+	int code = run_cmd_da(cmd, &buffer);
+	if (code != 0)
+	{
+		da_delete(buffer);
+		cmd_delete(cmd);
+		return false;
+	}
+
+	char* begin = buffer.items;
+	char* end;
+	while (true)
+	{
+		end = strchr(begin, '\n');
+		if (end) *end = '\0';
+		da_append(conf->installed_packages, strdup(begin));
+		if (!end) break;
+		if (!*++end) break;
+		begin = end + 1;
+	}
+
+	da_delete(buffer);
+	cmd_delete(cmd);
+	return true;
+}
+
 void add_a_packages(config* conf)
 {
 
@@ -93,6 +123,7 @@ int perform_update()
 {
 	command cmd = create_cmd("sudo", "pacman", "-Syu");
 	int exit = run_cmd(cmd);
+	cmd_delete(cmd);
 	return exit;
 }
 
@@ -152,12 +183,19 @@ int handle_sync(config* conf)
 	}
 
 	if (!parse_config_file(conf)) exit(1);
+	if (!query_system_packages(conf)) exit(1);
 
-	// conf->config_packages.items -> char**
-	// conf->config_packages.items[i] -> char*
+	da_sort_string(conf->config_packages);
+	da_sort_string(conf->installed_packages);
+
 	for (int i = 0; i < conf->config_packages.len; i++)
 	{
 		printf("package: '%s'\n", conf->config_packages.items[i]);
+	}
+
+	for (int i = 0; i < conf->installed_packages.len; i++)
+	{
+		/* printf("package: '%s'\n", conf->installed_packages.items[i]); */
 	}
 
 	if (!add && !remove && !update && !orphan)
@@ -170,7 +208,8 @@ int handle_sync(config* conf)
 	if (update) perform_update();
 	for (int i = 0; i < conf->config_packages.len; i++)
 		free(conf->config_packages.items[i]);
-
+	for (int i = 0; i < conf->installed_packages.len; i++)
+		free(conf->installed_packages.items[i]);
 	return 0;
 }
 

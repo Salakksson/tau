@@ -53,4 +53,24 @@ do { \
 	(buf) += snprintf((buf), end - (buf), "}"); \
 } while (0);
 
+#define da_swap(list, a, b) \
+do { \
+	char* tmp = (list).items[a]; \
+	(list).items[a] = (list).items[b]; \
+	(list).items[b] = tmp; \
+} while (0);
+
+#define da_sort_string(list) \
+do { \
+	for (int i = 0; i < (list).len - 1; i++) \
+	{ \
+		for (int j = 0; j < (list).len - 1 - i; j++) \
+		{ \
+			if (strcmp((list).items[j], (list).items[j+1]) > 0 ) \
+				da_swap(list, j, j + 1); \
+		} \
+	} \
+\
+} while (0);
+
 #endif
