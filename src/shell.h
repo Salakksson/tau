@@ -11,6 +11,14 @@ typedef struct
 	DA(char*) argv;
 } command;
 
+static inline void print_cmd(command cmd)
+{
+	printf("running command:");
+	for (int i = 0; i < cmd.argv.len - 1; i++)
+		printf(" %s", cmd.argv.items[i]);
+	puts("");
+}
+
 static inline command _create_cmd_(const char* const argv[])
 {
 	command cmd = {0};
@@ -27,6 +35,8 @@ static inline command _create_cmd_(const char* const argv[])
 
 static inline pid_t run_cmd_async(command cmd)
 {
+	print_cmd(cmd);
+
 	pid_t pid = fork();
 	char* name = cmd.argv.items[0];
 	if (pid == 0)
@@ -67,6 +77,8 @@ typedef DA(char) _da_char_;
 
 static inline int run_cmd_da(command cmd, _da_char_* out)
 {
+	print_cmd(cmd);
+
 	int pipefd[2];
 	if (pipe(pipefd) == -1)
 	{

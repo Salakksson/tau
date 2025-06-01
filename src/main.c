@@ -12,6 +12,8 @@ int main(int argc, char** argv)
 	da_construct(conf.flags, 5);
 	da_construct(conf.config_packages, 50);
 	da_construct(conf.installed_packages, 50);
+	da_construct(conf.add_packages, 10);
+	da_construct(conf.remove_packages, 10);
 	for (int i = 1; i < argc; i++)
 	{
 		if (!parse_arg(&conf, argv[i]))
@@ -21,9 +23,6 @@ int main(int argc, char** argv)
 
 	if (strchr(conf.flags.items, 'h'))
 		display_help(conf.mode, 0);
-
-	for (int i = 0; i < conf.args.len; i++) puts(conf.args.items[i]);
-	printf("%s -%c%s\n", argv[0], conf.mode, conf.flags.items);
 
 	int exit_code = 1;
 	switch (conf.mode)
@@ -52,6 +51,8 @@ int main(int argc, char** argv)
 	da_delete(conf.args);
 	da_delete(conf.config_packages);
 	da_delete(conf.installed_packages);
+	da_delete(conf.add_packages);
+	da_delete(conf.remove_packages);
 
 	return exit_code;
 }

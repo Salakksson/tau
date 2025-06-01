@@ -12,6 +12,8 @@ typedef struct
 	DA(char) flags;
 	DA(char*) config_packages;
 	DA(char*) installed_packages;
+	DA(char*) add_packages;
+	DA(char*) remove_packages;
 	DA(const char*) args;
 } config;
 
