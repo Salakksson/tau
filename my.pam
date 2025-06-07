@@ -1,0 +1,90 @@
+# important system shit
+base
+base-devel
+efibootmgr
+grub
+intel-ucode
+iwd
+polkit-kde-agent
+openssh
+zram-generator
+networkmanager
+
+# desktop shit
+xdg-desktop-portal-wlr
+xorg-server
+xorg-xinit
+qt5-wayland
+qt6-wayland
+
+# audio
+pavucontrol
+pipewire-pulse
+pipewire-jack
+pulseaudio-alsa
+libva-nvidia-driver
+lib32-nvidia-utils
+nvidia-dkms
+
+# kernel shit
+linux-firmware
+linux-zen
+linux-zen-headers
+
+# desktop
+hyprland
+hyprpaper
+ly
+waybar
+wlogout
+walker-bin
+
+# apps
+kitty-git # custom pkgbuild needed
+firefox
+thunderbird
+obs-studio
+vesktop
+lmms-git audacity
+vital-synth
+mpv
+cmus
+steam
+clonehero
+moonscraper-chart-editor-bin
+
+# emacs dependancies
+libgccjit
+gpm
+cmake
+clang
+ccls
+
+# utils
+gdb perf wget less bat dust git htop tmux ripgrep
+man-db man-pages
+zsh zoxide atuin
+vim
+stow
+git-filter-repo
+github-cli
+xdg-ninja
+yay
+yt-dlp
+nmap
+arch-install-scripts
+libqalculate
+#chromium
+
+# desktop utils
+grim
+slurp
+libnotify
+mako
+wl-clipboard
+
+# misc
+ttf-victor-mono-nerd
+noto-fonts-cjk-jp-vf
+wine
+glfw glew raylib
