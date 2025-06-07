@@ -14,7 +14,7 @@ die()
 {
 	echo "error: $1" >&2
 	print_usage >&2
-	
+
 	exit 1
 }
 
@@ -65,9 +65,9 @@ function store_deps() # file, deps
 {
 	file=$1
 	deps=${@:2} # Vargs
-	
+
 	depline="$file::$deps"
-	while read -r line; 
+	while read -r line;
 	do
 		qfile=$(echo $line | sed 's|\(.*\)::.*|\1|')
 		if [ $qfile = $file ];
@@ -104,7 +104,7 @@ function find_deps() # file, object
 		return
 	fi
 	# Find location of file in depfile
-	while read -r line; 
+	while read -r line;
 	do
 		qfile=$(echo $line | sed 's|\(.*\)::.*|\1|')
 		if [ $qfile = $file ];
