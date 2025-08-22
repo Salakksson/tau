@@ -16,21 +16,24 @@ touch $DEPFILE
 
 TARGET=./pamde
 
+INSTALL=false
+RUN=true
+
 objects=""
-for file in src/*.c
+for file in src/c/*.c
 do
 	out=${file/src/$BIN_DIR}.o
 	objects="$objects $out"
 
-	skip=false
+	skip=true
 
-	# for dep in $(.build/fastdep.sh $file -o $out -d $DEPFILE)
-	# do
-	#	if [ $file -nt $out ];
-	#	then
-	#		skip=false;
-	#	fi
-	# done
+	for dep in $(build/fastdep.sh $file -o $out -d $DEPFILE)
+	do
+		if [ $file -nt $out ];
+		then
+			skip=false;
+		fi
+	done
 
 	if $skip;
 	then
@@ -44,3 +47,14 @@ done
 
 $CC $LDFLAGS $objects -o $TARGET
 
+if $RUN;
+then
+	./$TARGET
+fi
+
+if $INSTALL;
+then
+	sudo rm -fr /usr/share/pamde/pmd/
+	sudo mkdir usr/share/pamde/pmd
+	sudo cp src/pmd/* /usr/share/pamde/pmd
+fi

@@ -1,0 +1,21 @@
+
+if true {
+	echo "string1";
+};
+
+if false {
+	echo "string2";
+};
+
+def foo = {
+	echo "string3 in def foo";
+};
+
+def foo-bar = {
+	foo;
+	echo "string4 in def foo-bar";
+};
+
+foo;
+foo-bar;
+echo "success?";
