@@ -7,58 +7,50 @@
 #include <ctype.h>
 #include <stdbool.h>
 
-void lexer_throw(lexer* lex, const char* msg)
+// all puncts with special meaning
+#define RESERVED_PUNCTS ";\"[]{}#"
+
+static void lexer_throw(lexer* lex, const char* fmt, ...)
 {
 	lex->err = true;
-	printf("error while lexing %s:%lu: %s", lex->source, lex->lineno, msg);
+	va_list args;
+	va_start(args, fmt);
+
+	location loc = lex->loc;
+
+	fprintf(stderr, "error at %s:%i:%i: ", lex->source, loc.line, loc.col);
+	vprintf(fmt, args);
+	puts("");
+
+	va_end(args);
 }
 
-void lexer_skip_whitespace(lexer* lex)
+static void lexer_increment_ptr(lexer* lex)
+{
+	if (lex->ptr <= lex->sz &&
+	    lex->buffer[lex->ptr] == '\n')
+	{
+		lex->loc.line++;
+		lex->loc.col = -1;
+		lex->ptr++;
+		return;
+	}
+	lex->ptr++;
+	lex->loc.col++;
+}
+
+static bool lexer_is_eof(lexer* lex)
+{
+	return lex->ptr >= lex->sz;
+}
+
+static void lexer_skip_whitespace(lexer* lex)
 {
 	while (isspace(lex->buffer[lex->ptr]))
 	{
-		if (lex->buffer[lex->ptr] == '\n') lex->lineno++;
-		lex->ptr++;
+		lexer_increment_ptr(lex);
 	}
 }
-
-void cmd_append(lexer* lex, cmd* c, var v)
-{
-	if (!c->name)
-	{
-		if (v.kind != VAR_ATOM || v.atom.kind != ATOM_VAR)
-		{
-			// TODO: handle better and give debug info...
-			lexer_throw(lex, "unknown function");
-			return;
-		}
-		c->name = v.atom.str;
-		return;
-	}
-
-	da_append(
-		(void*)&c->args.vars,
-		&c->args.vars_count,
-		&c->args.vars_size,
-		sizeof(c->args.vars[0]),
-		&v
-	);
-}
-
-typedef enum token_kind
-{
-	TOK_EOF,
-	TOK_END_OF_LIST,
-	TOK_END_OF_BLOCK,
-	TOK_SEMI,
-	TOK_VAR,
-} token_kind;
-
-typedef struct token
-{
-	token_kind kind;
-	var v;
-} token;
 
 static char get_escaped_char(char c)
 {
@@ -79,139 +71,106 @@ static char get_escaped_char(char c)
 	}
 }
 
-token lexer_get_sliteral(lexer* lex)
+static token lexer_get_sliteral(lexer* lex)
 {
 	int bufsz = 10;
 	char* str = malloc(bufsz);
 	int len = 0;
 
-	lex->ptr++;
-	if (!lex->buffer[lex->ptr])
+	lexer_increment_ptr(lex);
+	if(lexer_is_eof(lex))
+	{
 		lexer_throw(lex, "unexpected eof after \"");
+		return TOKEN(EOF);
+	}
 
-	// TODO: proper multiline strings
-	token tok = {0};
-	tok.kind = TOK_VAR;
-	tok.v.kind = VAR_ATOM;
-	tok.v.atom.kind = ATOM_STRING;
-
+	// TODO: multiline strings...
 	while(true)
 	{
-		if (len >= bufsz)
-		{
-			str = realloc(str, (bufsz *= 2));
-		}
+		if (len >= bufsz) str = realloc(str, (bufsz *= 2));
 		char c = lex->buffer[lex->ptr];
 		if (c == '\"')
 		{
-			str[len] = 0;
-			lex->ptr++;
-			tok.v.atom.str = str;
-			return tok;
+			lexer_increment_ptr(lex);
+			break;
 		}
 		if (c == '\\')
 		{
-			lex->ptr++;
+			lexer_increment_ptr(lex);
+			if(lexer_is_eof(lex))
+			{
+				lexer_throw(lex, "unexpected eof inside string");
+				break;
+			}
 			c = get_escaped_char(lex->buffer[lex->ptr]);
 		}
 		str[len] = c;
 		len++;
-		lex->ptr++;
-		if (!lex->buffer[lex->ptr])
+		lexer_increment_ptr(lex);
+		if(lexer_is_eof(lex))
+		{
 			lexer_throw(lex, "unexpected eof inside string");
+			break;
+		}
+
 	}
+
+	str[len] = 0;
+	return TOKEN(SLITERAL, .str = str, .loc = lex->loc);
 }
 
-token lexer_get_token(lexer* lex);
-
-token lexer_get_list(lexer* lex)
+static void lexer_skip_comment(lexer* lex)
 {
-	// skip [
-	lex->ptr++;
-	if (!lex->buffer[lex->ptr])
-		lexer_throw(lex, "unexpected eof afer [");
-
-	token tok = {0};
-	tok.kind = TOK_VAR;
-	tok.v.kind = VAR_LIST;
-
-	lexer_skip_whitespace(lex);
-	while (lex->buffer[lex->ptr] != ']')
-	{
-		token e = lexer_get_token(lex);
-		if (e.kind != TOK_VAR)
-			lexer_throw(lex, "expected var");
-		else
-			da_append(
-				(void*)&tok.v.list.vars,
-				&tok.v.list.vars_count,
-				&tok.v.list.vars_size,
-				sizeof(tok.v.list.vars[0]),
-				&e
-			);
-		lexer_skip_whitespace(lex);
-	}
-
-	// skip ]
-	lex->ptr++;
-	return tok;
+	char c;
+	while ((c = lex->buffer[lex->ptr]) != '\n')
+		lexer_increment_ptr(lex);
 }
 
-token lexer_get_block(lexer* lex)
+static token lexer_get_punct(lexer* lex)
 {
-	// skip {
-	lex->ptr++;
-	if (!lex->buffer[lex->ptr])
-		lexer_throw(lex, "unexpected eof after {");
+	char c = lex->buffer[lex->ptr];
 
-	token tok = {0};
-	tok.kind = TOK_VAR;
-	tok.v.kind = VAR_BLOCK;
-	tok.v.block.kind = BLOCK_PMD;
-	lexer_skip_whitespace(lex);
-	while (lex->buffer[lex->ptr] != '}')
+	switch (c)
 	{
-		cmd c = lexer_get_cmd(lex);
-		da_append(
-			(void*)&tok.v.block.cmds,
-			&tok.v.block.cmds_count,
-			&tok.v.block.cmds_size,
-			sizeof(tok.v.block.cmds[0]),
-			&c
-		);
-		lexer_skip_whitespace(lex);
-		if (!lex->buffer[lex->ptr])
-			lexer_throw(lex, "unexpected eof before }");
+	case '"': return lexer_get_sliteral(lex);
+	case '#':
+		lexer_skip_comment(lex);
+		return lexer_get_token(lex);
+	case '[':
+		lexer_increment_ptr(lex);
+		return TOKEN(BEGIN_LIST, .loc = lex->loc);
+	case ']':
+		lexer_increment_ptr(lex);
+		return TOKEN(CLOSE_LIST, .loc = lex->loc);
+	case '{':
+		lexer_increment_ptr(lex);
+		return TOKEN(BEGIN_BLOCK, .loc = lex->loc);
+	case '}':
+		lexer_increment_ptr(lex);
+		return TOKEN(CLOSE_BLOCK, .loc = lex->loc);
+	case ';':
+		lexer_increment_ptr(lex);
+		return TOKEN(SEMI, .loc = lex->loc);
+	default:
+		lexer_throw(lex, "unreachable?");
+		lexer_increment_ptr(lex);
+		return TOKEN(EOF); // if this happens disaster has struck
 	}
-
-	// skip }
-	lex->ptr++;
-	return tok;
 }
 
-bool lexer_is_end_of_id(char c)
+static bool lexer_is_end_of_id(char c)
 {
 	if (isspace(c)) return true;
-	if (c == ';') return true;
-	if (c == '"') return true;
-	if (c == '[') return true;
-	if (c == ']') return true;
-	if (c == '{') return true;
-	if (c == '}') return true;
-	// WARNING: update if new puncts are added
+	if (strchr(RESERVED_PUNCTS, c)) return true;
+
 	return false;
 }
 
-token lexer_get_id(lexer* lex)
+static token lexer_get_id(lexer* lex)
 {
 	int bufsz = 10;
 	char* str = malloc(bufsz);
 	int len = 0;
-
-	token tok = {0};
-	tok.kind = TOK_VAR;
-	tok.v.kind = VAR_ATOM;
-	tok.v.atom.kind = ATOM_VAR;
 
 	while(true)
 	{
@@ -219,26 +178,25 @@ token lexer_get_id(lexer* lex)
 		// TODO: handle oom :)
 
 		if (lexer_is_end_of_id(lex->buffer[lex->ptr]))
-		{
-			str[len] = 0;
-			tok.v.atom.str = str;
-			return tok;
-		}
+			break;
+
 		str[len] = lex->buffer[lex->ptr];
 		len++;
-		lex->ptr++;
-		if (!lex->buffer[lex->ptr])
-			lexer_throw(lex, "missing trailing semicolon?");
+		lexer_increment_ptr(lex);
+		if (lexer_is_eof(lex))
+			break;
 	}
+
+	str[len] = 0;
+	return TOKEN(ID, .str = str, .loc = lex->loc);
 }
 
 token lexer_get_token(lexer* lex)
 {
 	lexer_skip_whitespace(lex);
+	if (lexer_is_eof(lex)) return TOKEN(EOF);
 
 	char c = lex->buffer[lex->ptr];
-
-	if (!c) return (token) {.kind = TOK_SEMI};
 
 	if (!isprint(c))
 	{
@@ -246,39 +204,11 @@ token lexer_get_token(lexer* lex)
 		exit(1);
 	}
 
-	if (c == ';')
-	{
-		lex->ptr++;
+	/* if (isdigit(c)) return lexer_get_nliteral(lex); */
+	// TODO: add numbers :/
+	if (strchr(RESERVED_PUNCTS, c)) return lexer_get_punct(lex);
 
-		return (token){.kind = TOK_SEMI};
-	}
-
-	if (c == '"') return lexer_get_sliteral(lex);
-	if (c == '[') return lexer_get_list(lex);
-	if (c == ']') return (token){.kind = TOK_END_OF_LIST};
-	if (c == '{') return lexer_get_block(lex);
-	if (c == '}') return (token){.kind = TOK_END_OF_BLOCK};
-	token id = lexer_get_id(lex);
-
-	return id;
-}
-
-cmd lexer_get_cmd(lexer* lex)
-{
-	cmd c = {0};
-	while (true)
-	{
-		token tok = lexer_get_token(lex);
-		if (tok.kind != TOK_VAR) return c;
-
-		cmd_append(lex, &c, tok.v);
-	}
-}
-
-cmd lexer_peek_cmd(lexer* lex)
-{
-	lexer copy = *lex;
-	return lexer_get_cmd(&copy);
+	return lexer_get_id(lex);
 }
 
 lexer lexer_create(const char* source)
@@ -288,26 +218,54 @@ lexer lexer_create(const char* source)
 	FILE* fp = fopen(source, "r");
 	if (!fp)
 	{
-		fprintf(stderr, "failed to open file '%s': %s", source, strerror(errno));
+		fprintf(
+			stderr,
+			"failed to open file '%s': %s",
+			source,
+			strerror(errno)
+		);
 		exit(1);
 	}
 
 	fseek(fp, 0, SEEK_END);
-	size_t sz = ftell(fp);
+	l.sz = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
 
 	l.source = source;
-	l.lineno = 1;
+	l.loc.line = 1;
+	l.loc.col = 0;
 	l.err = false;
 
-	char* buffer = malloc(sz + 1);
-	size_t sum = fread(buffer, 1, sz, fp);
+	char* buffer = malloc(l.sz + 1);
+	size_t sum = fread(buffer, 1, l.sz, fp);
 
-	if (sum != sz) fprintf(stderr, "failed to read entire file '%s': '%s'", source, strerror(errno));
+	if (sum != l.sz) fprintf(
+		stderr,
+		"failed to read entire file '%s': '%s'",
+		source,
+		strerror(errno)
+	);
 
-	buffer[sz] = 0;
+	buffer[l.sz] = 0;
 	l.buffer = buffer;
 
 	fclose(fp);
 	return l;
+}
+
+char* view_token(token tok)
+{
+	switch (tok.kind)
+	{
+	case TOK_BEGIN_BLOCK: return strdup("{");
+	case TOK_BEGIN_LIST:  return strdup("[");
+	case TOK_CLOSE_BLOCK: return strdup("}");
+	case TOK_CLOSE_LIST:  return strdup("]");
+	case TOK_SEMI:        return strdup(";");
+	case TOK_EOF:         return strdup("eof");
+	case TOK_ID:          return strdup(tok.str);
+	case TOK_NLITERAL:    return fstring("%lf", tok.number);
+	case TOK_SLITERAL:    return fstring("\"%s\"", tok.str);
+	default:              return strdup("?!?");
+	}
 }

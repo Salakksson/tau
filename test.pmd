@@ -1,21 +1,36 @@
 
-if true {
-	echo "string1";
-};
+# def print-run block = {
+#	echo block;
+#	block;
+# };
 
-if false {
-	echo "string2";
-};
+# def if-wrapper cond block = {
+#	if cond block;
+# };
+
+# def do-shit fn list = {
+#	for i : list {
+#		fn i;
+#	};
+# };
+
+# do-shit echo ["line1" "line2" "line3"];
+
+
 
 def foo = {
-	echo "string3 in def foo";
+	echo "1";
 };
 
 def foo-bar = {
 	foo;
-	echo "string4 in def foo-bar";
+	echo "2";
 };
 
 foo;
 foo-bar;
-echo "success?";
+
+echo "expected:";
+echo "1";
+echo "1";
+echo "2";

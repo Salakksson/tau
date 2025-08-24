@@ -3,8 +3,8 @@
 set -e
 
 CC=gcc
-CCFLAGS=" -Wall -O0 -g -fsanitize=address,undefined"
-LDFLAGS=" -fsanitize=address,undefined"
+CCFLAGS=" -Wall -O0 -g -fsanitize=address,undefined -fno-sanitize=leak"
+LDFLAGS=" -fsanitize=address,undefined -fno-sanitize=leak"
 
 BUILD_DIR="build"
 BIN_DIR="$BUILD_DIR/bin"
@@ -18,6 +18,11 @@ TARGET=./pamde
 
 INSTALL=false
 RUN=true
+
+if [ "$1" = "clean" ];
+then
+	rm -fr $BIN_DIR/*/*.o
+fi
 
 objects=""
 for file in src/c/*.c

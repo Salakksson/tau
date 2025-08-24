@@ -1,7 +1,7 @@
 #ifndef PMD_H_
 #define PMD_H_
 
-#include "lex.h"
+#include "tree.h"
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -11,8 +11,7 @@
 
 typedef struct named_var
 {
-	const char* name;
-	var_list args;
+	char* name;
 	var value;
 } named_var;
 
@@ -21,13 +20,18 @@ typedef struct pmd
 	named_var* vars;
 	size_t vars_count;
 	size_t vars_size;
+
+	const char* scope;
 } pmd;
 
-void throw(const char* fn_name, const char* message);
+void throw(const char* fn_name, const char* fmt, ...);
 
-char* var_to_str(pmd* p, var v);
 bool pmd_init(pmd* p);
 void pmd_free(pmd* p);
-bool pmd_source(pmd p, const char* source);
+
+pmd pmd_clone(pmd* p, const char* scope);
+var pmd_eval(pmd* p, var v, const char* scope);
+
+bool pmd_eval_bool(pmd* p, var v);
 
 #endif

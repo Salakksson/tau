@@ -1,6 +1,7 @@
 #include "pmd.h"
 
 #include "da.h"
+#include "msg.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -8,18 +9,8 @@
 
 static bool g_thrown = false;
 
-void* memdup(const void* src, size_t sz)
+static var clone_var(var v)
 {
-	void* dst = malloc(sz);
-	if (!dst) return dst;
-	memcpy(dst, src, sz);
-	return dst;
-}
-
-var copy_var(var v)
-{
-	// TODO in future check performance diff of
-	// cutting memdup'd blocks to count instead of size
 	switch (v.kind)
 	{
 	case VAR_ATOM:
@@ -28,32 +19,38 @@ var copy_var(var v)
 		break;
 	case VAR_LIST:
 	{
-		var* new_vars = memdup(
-			v.list.vars,
-			v.list.vars_size
-			* sizeof(var)
-		);
-		for (size_t i = 0; i < v.list.vars_count; i++)
-			new_vars[i] = copy_var(new_vars[i]);
-		v.list.vars = new_vars;
+		var_list clone = {0};
+		for (size_t i = 0; i < v.list.len; i++)
+		{
+			var e = clone_var(v.list.arr[i]);
+			var_list_append(&clone, e);
+		}
+		v.list = clone;
 		break;
 	}
 	case VAR_BLOCK:
 	{
+		var_block clone = {0};
+
+		// TODO: implement shell block copy
 		if (v.block.kind != BLOCK_PMD) break;
-		cmd* new_cmds = memdup(
-			v.block.cmds,
-			v.block.cmds_size
-			* sizeof(cmd)
-		);
-		for (size_t i = 0; i < v.block.cmds_count; i++)
+
+		for (size_t i = 0; i < v.block.pmd.sts_len; i++)
 		{
-			cmd c = new_cmds[i];
-			var old = {.kind = VAR_LIST, .list = c.args};
-			var new = copy_var(old);
-			new_cmds[i].args = new.list;
+			statement st = v.block.pmd.sts_arr[i];
+			var args = {.kind = VAR_LIST, .list = st.args};
+			statement st_clone = {0};
+			st_clone.cmd = strdup(st.cmd);
+			st_clone.args = clone_var(args).list;
+			da_append (
+				(void*)&clone.pmd.sts_arr,
+				&clone.pmd.sts_len,
+				&clone.pmd.sts_cap,
+				sizeof(statement),
+				&st_clone
+			);
 		}
-		v.block.cmds = new_cmds;
+		v.block = clone;
 		break;
 	}
 	default:
@@ -62,10 +59,44 @@ var copy_var(var v)
 	return v;
 }
 
-void define(pmd* p, named_var def)
+void free_var(var v)
 {
+	switch (v.kind)
+	{
+	case VAR_ATOM:
+		if (v.atom.kind != ATOM_NUMBER)
+		{
+			debug("freeing string '%s'", v.atom.str);
+			free(v.atom.str);
+		}
+		break;
+	case VAR_LIST:
+		for (size_t i = 0; i < v.list.len; i++)
+			free_var(v.list.arr[i]);
+		debug("freeing list: %p", v.list.arr);
+		free(v.list.arr);
+		break;
+	case VAR_BLOCK:
+		for (size_t i = 0; i < v.block.pmd.sts_len; i++)
+		{
+			statement st = v.block.pmd.sts_arr[i];
+			var tmp = {.kind = VAR_LIST, .list = st.args};
+			free_var(tmp);
+			free(st.cmd);
+		}
+		debug("freeing block: %p", v.block.pmd.sts_arr);
+		free(v.block.pmd.sts_arr);
+		break;
+	default:
+		return;
+	}
+}
+
+static void define(pmd* p, named_var def)
+{
+	debug("defining var '%s' in scope '%s'", def.name, p->scope);
 	def.name = strdup(def.name);
-	def.value = copy_var(def.value);
+	def.value = clone_var(def.value);
 	da_append(
 		(void*)&p->vars,
 		&p->vars_count,
@@ -86,9 +117,18 @@ named_var pmd_get_named_var(pmd* p, const char* name)
 	return (named_var){0};
 }
 
-void throw(const char* fn_name, const char* message)
+// TODO: spit out line number here somehow
+void throw(const char* fn_name, const char* fmt, ...)
 {
-	fprintf(stderr, "encountered error: '%s' in %s\n", message, fn_name);
+	va_list args;
+	va_start(args, fmt);
+
+	fprintf(stderr, "encountered error '");
+	vfprintf(stderr, fmt, args);
+	fprintf(stderr, "' in scope '%s'\n", fn_name);
+
+	va_end(args);
+
 	g_thrown = true;
 }
 
@@ -96,100 +136,59 @@ bool handle_stack_trace(const char* name)
 {
 	if (!g_thrown) return false;
 
-	fprintf(stderr, "trace: '%s'\n", name);
+	debug("trace: '%s'\n", name);
 	return true;
 }
 
-void var_list_append(var_list* list, var v)
+// MAIN FUNCTION CALL HANDLE
+var pmd_eval_statement(pmd* p, statement st)
 {
-	da_append(
-		(void*)&list->vars,
-		&list->vars_count,
-		&list->vars_size,
-		sizeof(list->vars[0]),
-		&v
-	);
-}
+	/* printf("evaluating statement '%s", st.cmd); */
+	/* for (size_t i = 0; i < st.args.len; i++) */
+	/*	printf(" %s", var_to_str(p, st.args.arr[i])); */
+	/* printf("'\n"); */
+	if (!st.cmd) return (var){0};
 
-char* fstring(const char* fmt, ...)
-{
-	va_list args;
-	va_list copy;
-	va_start(args, fmt);
-	va_copy(copy, args);
-
-	size_t sz = vsnprintf(0, 0, fmt, args);
-	char* str = malloc(sz + 1);
-	vsnprintf(str, sz + 1, fmt, copy);
-
-	va_end(copy);
-	va_end(args);
-
-	return str;
-}
-
-var evaluate_shell_block(pmd* p, const char* shellscript)
-{
-	throw("evaluate_shell_block", "unimplemented");
-	return NULL_VAR;
-}
-
-var evaluate_function_call(pmd* p, var_list args, var block, const char* name)
-{
-	// block should be a block but can be anything
-	if (block.kind != VAR_BLOCK) return block;
-
-	var_block b = block.block;
-	if (b.kind == BLOCK_C) return b.c(p, args);
-	if (b.kind == BLOCK_SHELL) return evaluate_shell_block(p, b.shell);
-	for (size_t i = 0; i < b.cmds_count; i++)
+	// TODO: actually implement this shit...
+	if (!strcmp(st.cmd, "return"))
 	{
-		cmd statement = b.cmds[i];
-		if (!strcmp(statement.name, "return"))
-		{
-			if (statement.args.vars_count == 1)
-				return statement.args.vars[0];
-			return (var) {
-				.kind = VAR_LIST,
-				.list = statement.args
-			};
-		}
+		if (st.args.len == 1)
+			return clone_var(st.args.arr[0]);
 
-		named_var func = pmd_get_named_var(p, statement.name);
-		if (!func.name)
-		{
-			// TODO: log the name when throw gets an upgrade
-			throw(statement.name, "undefined function");
-			return NULL_VAR;
-		}
-		printf("calling '%s'\n", func.name);
-		evaluate_function_call(p, statement.args, func.value, func.name);
-		if (handle_stack_trace(name)) return NULL_VAR;
+		var args = (var) {
+			.kind = VAR_LIST,
+			.list = st.args,
+		};
+		return clone_var(args);
 	}
-	// this is a sucess if theres no return value, void returns empty list
-	return NULL_VAR;
+
+	named_var cmd = pmd_get_named_var(p, st.cmd);
+	// TODO: check arg count and types against named_var
+	// when a synax for that is chosen
+
+	if (!cmd.name)
+	{
+		throw(p->scope, "undefined variable '%s'", st.cmd);
+		return (var){0};
+	}
+
+	if (cmd.value.kind != VAR_BLOCK) return cmd.value;
+
+	var_block block = cmd.value.block;
+
+	if (block.kind == BLOCK_C)
+		return block.c(p, st.args);
+	// TODO: embed shell :/
+	/* if (v.block.kind == BLOCK_SHELL) */
+	/*	return evaluate_shell_block(p, v.block.shell); */
+
+	return pmd_eval(p, cmd.value, cmd.name);
 }
 
-var evaluate_var(pmd* p, var v)
+bool pmd_eval_bool(pmd* p, var cond)
 {
-	if (v.kind != VAR_BLOCK) return v;
-
-	return evaluate_function_call(p, NULL_LIST, v, "anonymous");
-}
-
-var evaluate_named_var(pmd* p, named_var v)
-{
-	if (!v.name) return NULL_VAR;
-	if (v.value.kind != VAR_BLOCK)
-		return evaluate_var(p, v.value);
-
-	return evaluate_function_call(p, v.args, v.value, v.name);
-}
-
-bool evaluate_condition(pmd* p, var cond)
-{
-	if (cond.kind == VAR_BLOCK) cond = evaluate_var(p, cond);
-	if (cond.kind == VAR_LIST) return cond.list.vars_count > 0;
+	if (cond.kind == VAR_BLOCK) cond = pmd_eval(p, cond, "pmd_eval_bool");
+	if (cond.kind == VAR_LIST) return cond.list.len > 0;
 	if (cond.kind != VAR_ATOM) return false;
 
 	var_atom atom = cond.atom;
@@ -197,8 +196,7 @@ bool evaluate_condition(pmd* p, var cond)
 	if (atom.kind == ATOM_VAR)
 	{
 		named_var v = pmd_get_named_var(p, atom.str);
-		var eval = evaluate_named_var(p, v);
-		return evaluate_condition(p, eval);
+		return pmd_eval_bool(p, v.value);
 	}
 	if (atom.kind == ATOM_STRING)
 		return atom.str;
@@ -219,9 +217,8 @@ char* var_to_str(pmd* p, var v)
 			return fstring("%d", v.atom.value);
 		if (v.atom.kind == ATOM_STRING)
 			return fstring("\"%s\"", v.atom.str);
-
-		named_var func = pmd_get_named_var(p, v.atom.str);
-		var eval = evaluate_named_var(p, func);
+		named_var value = pmd_get_named_var(p, v.atom.str);
+		var eval = pmd_eval(p, value.value, "var_to_str");
 		return var_to_str(p, eval);
 	case VAR_BLOCK:
 		return strdup("kind=block");
@@ -234,24 +231,26 @@ char* var_to_str(pmd* p, var v)
 
 var impl_echo(pmd* p, var_list args)
 {
-	for (size_t i = 0; i < args.vars_count; i++)
+	for (size_t i = 0; i < args.len; i++)
 	{
-		var arg = args.vars[i];
+		if (i > 0) printf(" ");
+		var arg = args.arr[i];
 		if (arg.kind == VAR_ATOM && arg.atom.kind == ATOM_STRING)
 		{
-			puts (arg.atom.str);
+			printf("%s", arg.atom.str);
 			break;
 		}
-		char* str = var_to_str(p, args.vars[i]);
+		char* str = var_to_str(p, arg);
 		puts(str);
 		free(str);
 	}
+	printf("\n");
 	return NULL_VAR;
 }
 
 var impl_def(pmd* p, var_list args)
 {
-	if (args.vars_count < 3)
+	if (args.len < 3)
 	{
 		throw("def", "not enough args");
 		return NULL_VAR;
@@ -261,37 +260,40 @@ var impl_def(pmd* p, var_list args)
 	size_t i;
 	named_var def = {0};
 
-	for (i = 0; i < args.vars_count; i++)
+	for (i = 0; i < args.len; i++)
 	{
-		var arg = args.vars[i];
+		var arg = args.arr[i];
 		if (arg.kind != VAR_ATOM)
 		{
-			// TODO: when throw gets upgraded print the token here
+			// TODO: upgrade logging
 			// TODO: also handle this shit better
-			throw("def", "undexpected non-atom");
+			throw("def", "undexpected '%s' before =", var_to_str(p, arg));
 			return NULL_VAR;
 
 		}
 
 		var_atom atom = arg.atom;
 
-		if (atom.kind == ATOM_VAR)
+		if (atom.kind != ATOM_VAR)
 		{
-			if (!strcmp(atom.str, "="))
-			{
-				found_eq = true;
-				i++;
-				break;
-			}
-			if (!def.name)
-				def.name = atom.str;
-			else
-				var_list_append(&def.args, arg);
-			continue;
+			throw("def", "unexpected '%s' before =", var_to_str(p, arg));
+			return NULL_VAR;
+
 		}
 
-		throw("def", "string or number encountered before =");
-		return NULL_VAR;
+		if (!strcmp(atom.str, "="))
+		{
+			found_eq = true;
+			i++;
+			break;
+		}
+		if (!def.name)
+			def.name = atom.str;
+		/* else */
+			/* var_list_append(&def.args, arg); */
+			// TODO: when uder definfed function syntax ...
+		continue;
+
 	}
 
 	if (!found_eq)
@@ -306,34 +308,36 @@ var impl_def(pmd* p, var_list args)
 		return NULL_VAR;
 	}
 
-	int n_args_left = args.vars_count - i;
+	int n_args_left = args.len - i;
 	if (n_args_left != 1)
 	{
 		printf("%d\n", n_args_left);
 		for (int j = 0; j < n_args_left; j++)
 		{
-			printf("%i: %s\n", j, args.vars[i+j].atom.str);
+			printf("%i: %s\n", j, args.arr[i+j].atom.str);
 		}
 		throw("def", "more than one arg after '=");
 		return NULL_VAR;
 	}
-	def.value = args.vars[i];
+	def.value = args.arr[i];
 	define(p, def);
 	return NULL_VAR;
 }
 
 var impl_if (pmd* p, var_list args)
 {
-	if (args.vars_count != 2)
+	// TODO: else
+	if (args.len != 2)
 	{
 		throw("if", "if takes two arguments: `if <cond> <value>`");
 		return NULL_VAR;
 	}
-	var cond = args.vars[0];
-	var value = args.vars[1];
-	bool eval = evaluate_condition(p, cond);
+	var cond = args.arr[0];
+	var value = args.arr[1];
+
+	bool eval = pmd_eval_bool(p, cond);
 	if (eval)
-		return evaluate_var(p, value);
+		return pmd_eval(p, value, "if");
 	else
 		return NULL_VAR;
 }
@@ -341,7 +345,7 @@ var impl_if (pmd* p, var_list args)
 void def_c_func(pmd* p, const char* name, c_func f)
 {
 	named_var def = {0};
-	def.name = name;
+	def.name = strdup(name);
 	def.value.kind = VAR_BLOCK;
 	def.value.block.kind = BLOCK_C;
 	def.value.block.c = f;
@@ -351,7 +355,7 @@ void def_c_func(pmd* p, const char* name, c_func f)
 void def_number(pmd* p, const char* name, int value)
 {
 	named_var def = {0};
-	def.name = name;
+	def.name = strdup(name);
 	def.value.kind = VAR_ATOM;
 	def.value.atom.kind = ATOM_NUMBER;
 	def.value.atom.value = value;
@@ -361,7 +365,7 @@ void def_number(pmd* p, const char* name, int value)
 void def_string(pmd* p, const char* name, const char* str)
 {
 	named_var def = {0};
-	def.name = name;
+	def.name = strdup(name);
 	def.value.kind = VAR_ATOM;
 	def.value.atom.kind = ATOM_STRING;
 	def.value.atom.str = (char*)str;
@@ -372,7 +376,7 @@ bool pmd_init(pmd* p)
 {
 	p->vars_count = 0;
 	p->vars_size = 40;
-	p->vars = malloc(sizeof(var) * p->vars_size);
+	p->vars = malloc(sizeof(named_var) * p->vars_size);
 
 	def_c_func(p, "def", impl_def);
 	def_c_func(p, "if", impl_if);
@@ -383,80 +387,37 @@ bool pmd_init(pmd* p)
 	return true;
 }
 
+var pmd_eval(pmd* p, var v, const char* scope)
+{
+	if (v.kind != VAR_BLOCK) return v;
+
+	var last = {0};
+
+	pmd clone = pmd_clone(p, scope);
+
+	for (size_t i = 0; i < v.block.pmd.sts_len; i++)
+	{
+		statement st = v.block.pmd.sts_arr[i];
+		last = pmd_eval_statement(&clone, st);
+		// TODO: handle return call somewhere where
+		if (handle_stack_trace(clone.scope))
+			return (var){0};
+	}
+	return last;
+}
+
+pmd pmd_clone(pmd* p, const char* scope)
+{
+	debug("cloning pmd to scope %s", scope);
+	pmd clone = *p;
+	clone.vars = malloc(p->vars_size * sizeof(named_var));
+	memcpy(clone.vars, p->vars, p->vars_size * sizeof(named_var));
+	clone.scope = strdup(scope);
+	return clone;
+}
+
 void pmd_free(pmd* p)
 {
-	free(p->vars);
+	warn("TODO: should free pmd");
 }
 
-void free_var(var v)
-{
-	switch (v.kind)
-	{
-	case VAR_ATOM:
-		if (v.atom.kind != ATOM_NUMBER)
-		{
-			printf("freeing string '%s'\n", v.atom.str);
-			free(v.atom.str);
-		}
-		break;
-	case VAR_LIST:
-		for (size_t i = 0; i < v.list.vars_count; i++)
-			free_var(v.list.vars[i]);
-		printf("freeing list: %p\n", v.list.vars);
-		free(v.list.vars);
-		break;
-	case VAR_BLOCK:
-		for (size_t i = 0; i < v.block.cmds_count; i++)
-		{
-			cmd c = v.block.cmds[i];
-			var tmp = {.kind = VAR_LIST, .list = c.args};
-			free_var(tmp);
-		}
-		printf("freeing block: %p\n", v.block.cmds);
-		free(v.block.cmds);
-		break;
-	default:
-		return;
-	}
-}
-
-bool pmd_source(pmd p, const char* source)
-{
-	lexer lex = lexer_create(source);
-
-	int i = 0;
-	while (true)
-	{
-		printf("cmd %i:\n", i++);
-		cmd c = lexer_get_cmd(&lex);
-		if (lex.err) {
-			printf("lexing error\n");
-			free(lex.buffer);
-			return false;
-		}
-		if (!c.name) break;
-		var block = {0};
-		block.kind = VAR_BLOCK;
-		block.block.kind = BLOCK_PMD;
-		da_append(
-			(void*)&block.block.cmds,
-			&block.block.cmds_count,
-			&block.block.cmds_size,
-			sizeof(block.block.cmds[0]),
-			&c
-		);
-		evaluate_function_call(&p, (var_list){0}, block, "::");
-		free(block.block.cmds);
-		var list_to_free = (var){.kind = VAR_LIST, .list = c.args};
-		free_var(list_to_free);
-		/* free(c.name); // i think this is wrong? */
-		if (handle_stack_trace(source))
-		{
-			free(lex.buffer);
-			return false;
-		}
-
-	}
-	free(lex.buffer);
-	return true;
-}

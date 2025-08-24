@@ -1,9 +1,12 @@
 #include "pmd.h"
+#include "msg.h"
 
 #define DEFAULT_SOURCE_FILE "/usr/local/share/pamde/init.pmd"
 
 #include <string.h>
 #include <stdio.h>
+
+#include <sanitizer/lsan_interface.h>
 
 char* get_source_name(int argc, char** argv)
 {
@@ -45,15 +48,17 @@ char* get_source_name(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-	const char* source_file = get_source_name(argc, argv);
+	__lsan_disable();
+	/* const char* source_file = get_source_name(argc, argv); */
 	pmd p = {0};
 	pmd_init(&p);
 
-	bool exit = pmd_source(p, "test.pmd");
+	var source_tree = create_tree("test.pmd");
+	bool exit = pmd_eval_bool(&p, source_tree);
 
 	if (!exit)
 	{
-		printf("sourced file unsucessfully\n");
+		warn("testfile failed");
 	}
 
 	pmd_free(&p);
