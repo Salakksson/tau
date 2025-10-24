@@ -8,7 +8,7 @@
 #include <stdbool.h>
 
 // all puncts with special meaning
-#define RESERVED_PUNCTS ";\"[]{}#"
+#define RESERVED_PUNCTS ";\"[]{}()#"
 
 static void lexer_throw(lexer* lex, const char* fmt, ...)
 {
@@ -148,6 +148,12 @@ static token lexer_get_punct(lexer* lex)
 	case '}':
 		lexer_increment_ptr(lex);
 		return TOKEN(CLOSE_BLOCK, .loc = lex->loc);
+	case '(':
+		lexer_increment_ptr(lex);
+		return TOKEN(BEGIN_PAREN, .loc = lex->loc);
+	case ')':
+		lexer_increment_ptr(lex);
+		return TOKEN(CLOSE_PAREN, .loc = lex->loc);
 	case ';':
 		lexer_increment_ptr(lex);
 		return TOKEN(SEMI, .loc = lex->loc);
@@ -258,8 +264,10 @@ char* view_token(token tok)
 	switch (tok.kind)
 	{
 	case TOK_BEGIN_BLOCK: return strdup("{");
+	case TOK_BEGIN_PAREN: return strdup("(");
 	case TOK_BEGIN_LIST:  return strdup("[");
 	case TOK_CLOSE_BLOCK: return strdup("}");
+	case TOK_CLOSE_PAREN: return strdup(")");
 	case TOK_CLOSE_LIST:  return strdup("]");
 	case TOK_SEMI:        return strdup(";");
 	case TOK_EOF:         return strdup("eof");

@@ -3,7 +3,7 @@
 set -e
 
 CC=gcc
-CCFLAGS=" -Wall -O0 -g -fsanitize=address,undefined -fno-sanitize=leak"
+CCFLAGS=" -Wall -Wpedantic -Werror -O0 -g -fsanitize=address,undefined -fno-sanitize=leak"
 LDFLAGS=" -fsanitize=address,undefined -fno-sanitize=leak"
 
 BUILD_DIR="build"
@@ -14,7 +14,7 @@ mkdir -p $BUILD_DIR
 mkdir -p $BIN_DIR
 touch $DEPFILE
 
-TARGET=./pamde
+TARGET=./tauc
 
 INSTALL=false
 RUN=true
@@ -55,11 +55,4 @@ $CC $LDFLAGS $objects -o $TARGET
 if $RUN;
 then
 	./$TARGET
-fi
-
-if $INSTALL;
-then
-	sudo rm -fr /usr/share/pamde/pmd/
-	sudo mkdir usr/share/pamde/pmd
-	sudo cp src/pmd/* /usr/share/pamde/pmd
 fi

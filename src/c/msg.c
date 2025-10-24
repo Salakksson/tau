@@ -1,5 +1,7 @@
 #include "msg.h"
 
+#define DEBUG
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>

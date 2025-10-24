@@ -1,8 +1,6 @@
 #include "pmd.h"
 #include "msg.h"
 
-#define DEFAULT_SOURCE_FILE "/usr/local/share/pamde/init.pmd"
-
 #include <string.h>
 #include <stdio.h>
 
@@ -10,7 +8,7 @@
 
 char* get_source_name(int argc, char** argv)
 {
-	char* source = DEFAULT_SOURCE_FILE;
+	char* source = "";
 
 	for (int i = 1; i < argc; i++)
 	{
@@ -48,12 +46,13 @@ char* get_source_name(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
+	msg_set_level(MSG_DEBUG);
 	__lsan_disable();
 	/* const char* source_file = get_source_name(argc, argv); */
 	pmd p = {0};
 	pmd_init(&p);
 
-	var source_tree = create_tree("test.pmd");
+	var source_tree = create_tree("test.tau");
 	bool exit = pmd_eval_bool(&p, source_tree);
 
 	if (!exit)

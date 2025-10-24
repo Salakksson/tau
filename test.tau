@@ -1,0 +1,90 @@
+# TODO:
+# * !! parens
+# * ! while, for, calc, test
+# * ? shell block
+# * !! modify variables of previous scope
+# * !! int literals
+# * ? float literals
+
+echo "start";
+
+
+return 1;
+
+# calc a b;
+
+# while (calc i < 10) {
+#	echo i;
+#	calc i ++;
+# };
+
+# def is-even i {
+#	calc i % 2 == 0;
+# };
+
+# for i : (range 10) {
+#	if (is-even i) echo i;
+# };
+
+# test "sum 1 -> 5" 15 {
+#	def i = 0;
+#	for i : (range 1 5) {
+#		calc i ++; # affects global scope
+#		def j = 5; # doesnt affect outer scopes
+#	};
+#	echo j; # throws undefined var
+# };
+
+type int = i32;
+type vector2 = struct {
+	float x;
+	float y;
+};
+
+int i = 69;
+float f = 6.9;
+string str = "69";
+list l = [i f str];
+
+
+
+int main{string s; int i} // parens would look better
+{
+	echo s;
+	char c = ((s[0]));
+	echo "first char is: " c;
+	return i;
+}; // no semicolon?
+
+
+
+if true {
+	if true {
+		echo "throw"
+		# throw;
+	};
+};
+
+def foo = {
+	echo "1"
+};
+
+def foo-bar = {
+	foo;
+	echo "2"
+};
+
+echo "trying foo";
+def foo = (if true "foo");
+
+echo foo; # "foo"
+echo "trying foo";
+
+foo;
+foo-bar;
+
+echo "expected:";
+echo "1";
+echo "1";
+echo "2";
+

@@ -17,6 +17,7 @@ typedef enum {
 
 typedef enum {
 	BLOCK_PMD,
+	BLOCK_PAREN,
 	BLOCK_SHELL,
 	BLOCK_C,
 } block_kind;
@@ -89,6 +90,7 @@ typedef struct
 	size_t current_token;
 
 	bool err;
+	bool eof;
 } parser;
 
 char* var_to_str(pmd* p, var v);

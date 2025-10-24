@@ -94,7 +94,7 @@ void free_var(var v)
 
 static void define(pmd* p, named_var def)
 {
-	debug("defining var '%s' in scope '%s'", def.name, p->scope);
+	info("defining var '%s' in scope '%s'", def.name, p->scope);
 	def.name = strdup(def.name);
 	def.value = clone_var(def.value);
 	da_append(
@@ -123,32 +123,32 @@ void throw(const char* fn_name, const char* fmt, ...)
 	va_list args;
 	va_start(args, fmt);
 
-	fprintf(stderr, "encountered error '");
-	vfprintf(stderr, fmt, args);
-	fprintf(stderr, "' in scope '%s'\n", fn_name);
+	char* message = vfstring(fmt, args);
+	err("%s threw: %s", fn_name, message);
+	free(message);
 
 	va_end(args);
-
 	g_thrown = true;
 }
 
 bool handle_stack_trace(const char* name)
 {
 	if (!g_thrown) return false;
+	err("trace: '%s'", name);
 
-	debug("trace: '%s'\n", name);
 	return true;
 }
 
 // MAIN FUNCTION CALL HANDLE
 var pmd_eval_statement(pmd* p, statement st)
 {
-	/* printf("evaluating statement '%s", st.cmd); */
 	/* for (size_t i = 0; i < st.args.len; i++) */
 	/*	printf(" %s", var_to_str(p, st.args.arr[i])); */
 	/* printf("'\n"); */
-	if (!st.cmd) return (var){0};
-
+	if (!st.cmd) {
+		warn("empty statement");
+		return (var){0};
+	}
 	// TODO: actually implement this shit...
 	if (!strcmp(st.cmd, "return"))
 	{
@@ -161,11 +161,9 @@ var pmd_eval_statement(pmd* p, statement st)
 		};
 		return clone_var(args);
 	}
-
 	named_var cmd = pmd_get_named_var(p, st.cmd);
 	// TODO: check arg count and types against named_var
 	// when a synax for that is chosen
-
 	if (!cmd.name)
 	{
 		throw(p->scope, "undefined variable '%s'", st.cmd);
@@ -176,18 +174,34 @@ var pmd_eval_statement(pmd* p, statement st)
 
 	var_block block = cmd.value.block;
 
+	// evaluate all () expressions
+	for (size_t i = 0; i < st.args.len; i++)
+	{
+		var arg = st.args.arr[i];
+		if (arg.kind != VAR_BLOCK) continue;
+		if (arg.block.kind != BLOCK_PAREN) continue;
+		var eval = pmd_eval(p, arg, cmd.name);
+		/* free_var(arg); */
+		st.args.arr[i] = eval;
+	}
+
 	if (block.kind == BLOCK_C)
 		return block.c(p, st.args);
+
 	// TODO: embed shell :/
 	/* if (v.block.kind == BLOCK_SHELL) */
 	/*	return evaluate_shell_block(p, v.block.shell); */
 
+	// regular {}/() block being evaluated using pmd_eval which creates a scope
 	return pmd_eval(p, cmd.value, cmd.name);
 }
 
 bool pmd_eval_bool(pmd* p, var cond)
 {
 	if (cond.kind == VAR_BLOCK) cond = pmd_eval(p, cond, "pmd_eval_bool");
+	char* print = var_to_str(p, cond);
+	info("eval_bool got: %s", print);
+	free(print);
 	if (cond.kind == VAR_LIST) return cond.list.len > 0;
 	if (cond.kind != VAR_ATOM) return false;
 
@@ -199,7 +213,7 @@ bool pmd_eval_bool(pmd* p, var cond)
 		return pmd_eval_bool(p, v.value);
 	}
 	if (atom.kind == ATOM_STRING)
-		return atom.str;
+		return atom.str != NULL;
 	if (atom.kind == ATOM_NUMBER)
 		return atom.value;
 
@@ -398,6 +412,7 @@ var pmd_eval(pmd* p, var v, const char* scope)
 	for (size_t i = 0; i < v.block.pmd.sts_len; i++)
 	{
 		statement st = v.block.pmd.sts_arr[i];
+		/* info("evaluating statement '%s'", st.cmd); */
 		last = pmd_eval_statement(&clone, st);
 		// TODO: handle return call somewhere where
 		if (handle_stack_trace(clone.scope))

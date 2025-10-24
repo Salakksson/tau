@@ -39,11 +39,9 @@ static inline void da_append(void** list, size_t* len, size_t* cap, size_t sz, v
 	(*len)++;
 }
 
-static inline char* fstring(const char* fmt, ...)
+static inline char* vfstring(const char* fmt, va_list args)
 {
-	va_list args;
 	va_list copy;
-	va_start(args, fmt);
 	va_copy(copy, args);
 
 	size_t sz = vsnprintf(0, 0, fmt, args);
@@ -51,6 +49,16 @@ static inline char* fstring(const char* fmt, ...)
 	vsnprintf(str, sz + 1, fmt, copy);
 
 	va_end(copy);
+
+	return str;
+}
+
+static inline char* fstring(const char* fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+
+	char* str = vfstring(fmt, args);
 	va_end(args);
 
 	return str;

@@ -64,19 +64,24 @@ static var parser_get_block(parser* p)
 {
 	token tok = p->tokens.arr[p->current_token];
 	var block = {0};
-	if (tok.kind != TOK_BEGIN_BLOCK)
+	if      (tok.kind == TOK_BEGIN_BLOCK) block.block.kind = BLOCK_PMD;
+	else if (tok.kind == TOK_BEGIN_PAREN) block.block.kind = BLOCK_PAREN;
+	else
 	{
 		parser_throw(p, "pamde dev is a moron");
 		return block;
 	}
 
+	token_kind endblock = (tok.kind == TOK_BEGIN_BLOCK)
+		? TOK_CLOSE_BLOCK : TOK_CLOSE_PAREN;
+
 	p->current_token++;
 	block.kind = VAR_BLOCK;
-	block.block.kind = BLOCK_PMD;
+
 	while (true)
 	{
 		tok = p->tokens.arr[p->current_token];
-		if (tok.kind == TOK_CLOSE_BLOCK)
+		if (tok.kind == endblock)
 		{
 			return block;
 		}
@@ -86,7 +91,7 @@ static var parser_get_block(parser* p)
 			return block;
 		}
 		statement st = parse_statement(p);
-
+		if(!st.cmd) continue;
 		da_append (
 			(void*)&block.block.pmd.sts_arr, // TODO UGILLLLLYY
 			&block.block.pmd.sts_len,
@@ -107,6 +112,7 @@ static var parse_var(parser* p)
 	case TOK_SEMI:
 	case TOK_CLOSE_LIST:
 	case TOK_CLOSE_BLOCK:
+	case TOK_CLOSE_PAREN:
 	case TOK_EOF:
 		return (var){0};
 	case TOK_ID:
@@ -123,26 +129,34 @@ static var parse_var(parser* p)
 		parser_throw(p, "unimplemented: nliteral");
 		return (var){0};
 	case TOK_BEGIN_BLOCK:
+	case TOK_BEGIN_PAREN:
 		return parser_get_block(p);
 	case TOK_BEGIN_LIST:
 		return parser_get_list(p);
 	}
+	__builtin_unreachable();
 }
 
 static statement parse_statement(parser* p)
 {
-	static int counter = 0;
-	counter++;
-	int i = counter;
 	token tok = p->tokens.arr[p->current_token];
 	statement st = {0};
 
-	if (tok.kind == TOK_EOF) return st;
+	if (tok.kind == TOK_EOF)
+	{
+		p->eof = true;
+		return st;
+	}
+	if (tok.kind == TOK_SEMI)
+	{
+		// empty statement will be warned by caller or at runtime
+		p->current_token++;
+		return st;
+	}
 	if (tok.kind != TOK_ID)
 	{
-
-		parser_throw(p, "unexpected idk");//, view_token(tok));
-		printf("view_token: %s\n", view_token(tok));
+		parser_throw(p, "unexpected '%s'", view_token(tok));
+		p->current_token++;
 		return st;
 	}
 	st.cmd = tok.str;
@@ -152,10 +166,10 @@ static statement parse_statement(parser* p)
 	while (true)
 	{
 		tok = p->tokens.arr[p->current_token];
-
 		if (tok.kind == TOK_EOF)
 		{
 			parser_throw(p, "unexpected eof");
+			p->eof = true;
 			return st;
 		}
 		if (tok.kind == TOK_SEMI)
@@ -163,9 +177,10 @@ static statement parse_statement(parser* p)
 			p->current_token++;
 			return st; // success!
 		}
-		if (tok.kind == TOK_CLOSE_BLOCK)
+		if (tok.kind == TOK_CLOSE_BLOCK
+		 || tok.kind == TOK_CLOSE_PAREN)
 		{
-			parser_throw(p, "unexpected end of block before semicolon");
+			info("statement not ending in semi");
 			return st;
 		}
 		var arg = parse_var(p);
@@ -176,9 +191,9 @@ static statement parse_statement(parser* p)
 		}
 		var_list_append(&st.args, arg);
 		p->current_token++;
-
 	}
 	parser_throw(p, "this should be unreachable");
+	return st;
 }
 
 var create_tree(const char* source)
@@ -217,9 +232,10 @@ var create_tree(const char* source)
 	tree.kind = VAR_BLOCK;
 	tree.block.kind = BLOCK_PMD;
 
-	statement st = {0};
-	while ((st = parse_statement(&p)).cmd)
+	while (true)
 	{
+		statement st = parse_statement(&p);
+
 		da_append (
 			(void*)&tree.block.pmd.sts_arr,
 			&tree.block.pmd.sts_len,
@@ -227,6 +243,8 @@ var create_tree(const char* source)
 			sizeof(statement),
 			&st
 		);
+
+		if (p.eof) break;
 	}
 
 	if (p.err)
