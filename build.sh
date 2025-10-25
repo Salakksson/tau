@@ -25,7 +25,7 @@ then
 fi
 
 objects=""
-for file in src/c/*.c
+for file in src/*.c
 do
 	out=${file/src/$BIN_DIR}.o
 	objects="$objects $out"

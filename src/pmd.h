@@ -15,6 +15,8 @@ typedef struct named_var
 	var value;
 } named_var;
 
+
+// this struct should be renamed to scope probably
 typedef struct pmd
 {
 	named_var* vars;
