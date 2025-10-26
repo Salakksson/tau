@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -e
-
 CC=gcc
 CCFLAGS=" -Wall -Wpedantic -Werror -O0 -g -fsanitize=address,undefined -fno-sanitize=leak"
 LDFLAGS=" -fsanitize=address,undefined -fno-sanitize=leak"
