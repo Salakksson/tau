@@ -81,3 +81,126 @@ int a = 1;
 int b = 2;
 int c = 3;
 ```
+
+## Contributing
+This project is open to pull requests but make sure to adhere to the following guidelines:
+
+* Use tab characters for indentation, and up to 3 space characters after the indentation
+tabs for allignment
+
+Reason: so that people can choose their own tab width while editing
+and allignment is consistent across as many environments as possible
+
+* Lines of code should be no more than 80 characters wide (when viewed with tabs of width 8 characters),
+unless shortening them would require breaking strings which are visible to the user
+```c
+struct s good = (struct s) {
+	.a = a,
+	.b = b,
+	.c = c,
+	.d = d
+}
+const char* bad = // if i grep for "The input provided is not supported" i wont find this
+	"Error: The input provide"
+	"d is not supported";
+```
+Reason: Although most screens are wider than 80 characters, long lines of code are still
+less readable and may be broken if the screen is split in half (such as when editing two files).
+The exception is obviously when a long string is printed to the screen and you may want to
+grep for it in the source code to find where it originates from easilly.
+
+* `goto` statements are permitted for non-excessive use (such as error handling, existing nested loops etc).
+
+* The open brace (`{`) character should be on a new line on its own, or on a line consisting of only a closing parenthesis.
+The exception being structs/unions
+```c
+int good(void)
+{
+	...
+}
+
+int bad(void) {
+	...
+}
+
+int good-long (
+	int a,
+	int b,
+	int c,
+	int d
+) {
+	...
+}
+
+int bad-long (
+	int a,
+	int b,
+	int c,
+	int d )
+{
+	...
+}
+
+typedef struct {
+	int foo;
+	struct {
+		int bar;
+		int baz;
+	} good_2;
+} good;
+
+typedef struct {
+	int foo;
+	struct
+	{
+		int bar;
+		int baz;
+	} good_2;
+} bad;
+
+if (good) do_something();
+if (good)
+	do_something();
+if (good)
+{
+	do_something();
+}
+
+if (bad) { do_something(); }
+if (bad) {
+	do_something();
+}
+```
+Reason: This isnt as objective as the other reasons but in this style the open and close braces are
+on the same level, making it personally easier for me to see the beginning and end of a scope.
+The long case is allowed for the reason of shortening lines with definitions of functions with many arguments.
+The exception for structs is because the `{}` doesnt define a scope, same with the `()`
+of a function declaration which is why the `good-long` example is fine
+
+* Avoid using empty arguments, and prefer `void`
+```c
+void do_something(); // bad
+void do_something(void); // good
+```
+Reason: In older versions of the C standard, `()` meant the equivalent of `(...)` today, meaning
+`do_something("", 29, 7.3f);` would be valid with the bad declaration, this is not as important
+but its preferable to specifically mark a function as taking no arguments using `void`.
+
+* Refrain from heavy use of preprocessor macros
+
+Reason: Although the preprocessor is a great C feature and is very useful for simplifying code,
+it can also be dangerous as one misplaced `\` could break a long macro, and it prevents the compiler
+from giving certain warnings/feedback about the macro and may require `-E` to debug which is not always nice.
+Long function-like macros should be used sparingly, and only if using a regular function wouldnt work.
+
+* Use the `-Werror` flag or an equivalent, and enable most warnings
+
+Reason: Often times warnings are ignored, although a lot of the time they are pointless, its still better
+to take care of them since at one point or another one of the warnings will be there to alert
+you of a bug and if you ignore the warnings and let them pile up, you are less likely to
+spot the important warning.
+
+* Use 1 empty line between definitions of functions/structs/long comments
+
+Reason: This separates different parts of the code slightly, and makes it easier
+to move functions by cutting/pasting in most cases.
