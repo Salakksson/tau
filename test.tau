@@ -6,35 +6,50 @@
 # * !! int literals
 # * ? float literals
 
-echo "start";
+#echo "start";
+#
+#if true {
+#	if true {
+#		echo "throw"
+#		# throw;
+#	};
+#};
+#
+#def foo = {
+#	echo "1"
+#};
+#
+#def foo-bar = {
+#	foo;
+#	echo "2"
+#};
+#
+#echo "trying foo";
+#def foo = (if true "foo");
+#
+#echo foo; # "foo"
+#echo "trying foo";
+#
+#foo;
+#foo-bar;
+#
+#echo "1";
+#echo "1";
+#echo "2";
+#
 
-if true {
-	if true {
-		echo "throw"
-		# throw;
-	};
+#!RAYLIB = "-Lvendor/raylib-5.5_linux_amd64/lib" "-l:libraylib.a";
+def init_window :: int -> int -> string = {
+    extern "InitWindow";
+};
+def window_should_close :: void = {
+    extern "WindowShouldClose";
 };
 
-def foo = {
-	echo "1"
+init_window 100 200 "Firefox";
+
+while !window_should_close {
+      begin_window;
+      clear_background RED;
+      end_windowl;
 };
-
-def foo-bar = {
-	foo;
-	echo "2"
-};
-
-echo "trying foo";
-def foo = (if true "foo");
-
-echo foo; # "foo"
-echo "trying foo";
-
-foo;
-foo-bar;
-
-echo "expected:";
-echo "1";
-echo "1";
-echo "2";
-

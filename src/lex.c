@@ -8,7 +8,7 @@
 #include <stdbool.h>
 
 // all puncts with special meaning
-#define RESERVED_PUNCTS ";\"[]{}()#"
+#define RESERVED_PUNCTS ";\"[]{}()#" // WHY Not make this a char array
 
 static void lexer_throw(lexer* lex, const char* fmt, ...)
 {
@@ -28,7 +28,7 @@ static void lexer_throw(lexer* lex, const char* fmt, ...)
 static void lexer_increment_ptr(lexer* lex)
 {
 	if (lex->ptr <= lex->sz &&
-	    lex->buffer[lex->ptr] == '\n')
+        lex->buffer[lex->ptr] == '\n')
 	{
 		lex->loc.line++;
 		lex->loc.col = -1;

@@ -17,6 +17,7 @@ typedef enum token_kind
 	TOK_SLITERAL,
 	TOK_NLITERAL,
 	TOK_ID,
+    TOK_EXTERNAL, // TODO: Create External Token To link with libc
 } token_kind;
 
 typedef struct location
@@ -35,7 +36,7 @@ typedef struct token
 	location loc;
 } token;
 
-#define TOKEN(KIND, ...) ((token){.kind = TOK_##KIND ,##__VA_ARGS__})
+#define TOKEN(KIND, ...) ((token){.kind = TOK_##KIND ,##__VA_ARGS__}) 
 
 typedef struct lexer
 {
