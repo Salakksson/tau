@@ -113,6 +113,9 @@ static var parse_var(parser* p)
 	case TOK_CLOSE_LIST:
 	case TOK_CLOSE_BLOCK:
 	case TOK_CLOSE_PAREN:
+    case TOK_EXTERNAL:
+        printf("Unreachable Token this is invalid");
+        return v;
 	case TOK_EOF:
 		return (var){0};
 	case TOK_ID:
